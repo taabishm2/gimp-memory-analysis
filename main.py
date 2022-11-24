@@ -25,7 +25,7 @@ if __name__ == "__main__":
     strace_file = open("strace.txt", "r")
 
     syscall_to_args_map = {
-        "mmap": ["addr", "length", "prot", "flags", "fd", "offset"]
+        "mmap": ["addr", "length", "prot", "flags", "fd", "offset"],
     }
 
     metadata_headers = ["pid", "timestamp", "duration"]
@@ -40,8 +40,8 @@ if __name__ == "__main__":
 
     # Save results of each call in their own csv
     for call_name in syscall_to_args_map:
-        print("Saving", call_name  + ".csv")
-        call_results_file = open(call_name + ".csv", "w")
+        print("Saving results/", call_name + ".csv")
+        call_results_file = open("results/" + call_name + ".csv", "w")
         mmap_csv = csv.writer(call_results_file)
         mmap_csv.writerows(syscall_results_map[call_name])
         call_results_file.close()
