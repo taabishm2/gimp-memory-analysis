@@ -26,6 +26,11 @@ if __name__ == "__main__":
 
     syscall_to_args_map = {
         "mmap": ["addr", "length", "prot", "flags", "fd", "offset"],
+        "munmap": ["addr", "length"],
+        "mprotect": ["addr", "length", "prot"],
+        "brk": ["addr"],
+        "shmdt" : ["shmaddr"],
+        "shmat" : ["shmid", "shmaddr", "shmflg"],
     }
 
     metadata_headers = ["pid", "timestamp", "duration"]
