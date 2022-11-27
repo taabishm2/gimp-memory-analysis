@@ -5,14 +5,14 @@ from datetime import datetime
 import pandas as pd
 
 
-def get_fields(syscall, fn_name):
+def get_fields(syscall):
     syscall = syscall.replace("\n", "")
     res = syscall.split(" ")
     return res[0], res[1], res[-2], res[-1]
 
 
 def parse_call(syscall, fn_name):
-    pid, timestamp, ret_val, duration = get_fields(syscall, fn_name)
+    pid, timestamp, ret_val, duration = get_fields(syscall)
     fn_args_list = get_fn_arguments(syscall, fn_name)
     return [pid, timestamp, ret_val, duration] + fn_args_list
 
@@ -90,6 +90,7 @@ if __name__ == "__main__":
 
     syscall_to_args_map = {
         "mmap": ["addr", "length", "prot", "flags", "fd", "offset"],
+        "mmap_anon": ["addr", "length", "prot", "flags", "fd", "offset"],
         "munmap": ["addr", "length"],
         "mprotect": ["addr", "length", "prot"],
         "brk": ["addr"],
@@ -106,7 +107,10 @@ if __name__ == "__main__":
         for call_to_parse in syscall_to_args_map:
             if " " + call_to_parse + "(" in line:
                 if "<unfinished ...>" not in line:
-                    syscall_results_map[call_to_parse].append(parse_call(line, call_to_parse))
+                    arguments = parse_call(line, call_to_parse)    
+                    syscall_results_map[call_to_parse].append(arguments)
+                    if call_to_parse == "mmap" and ("MAP_ANON" in arguments[7] or "MAP_ANONYMOUS" in arguments[7]):
+                        syscall_results_map["mmap_anon"].append(arguments)
                 else:
                     arguments = parse_call_for_unfinished(line, call_to_parse)
                     if arguments[0] + call_to_parse not in syscall_to_stacks_map:
@@ -119,6 +123,8 @@ if __name__ == "__main__":
                 arguments.insert(2, fields[-2])
                 arguments.insert(3, fields[-1])
                 syscall_results_map[call_to_parse].append(arguments)
+                if call_to_parse == "mmap" and ("MAP_ANON" in arguments[7] or "MAP_ANONYMOUS" in arguments[7]):
+                        syscall_results_map["mmap_anon"].append(arguments)
                 break
 
     # Save results of each call in their own csv
