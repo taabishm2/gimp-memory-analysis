@@ -1,23 +1,5 @@
-cp bench.sh ~/.config/GIMP/*/scripts
-files=`ls *.JPG | xargs`
+gimp -i -b '(batch-unsharp-mask "*.JPG" 15.0 0.6 0)' -b '(gimp-quit 0)' &
+PID=$!
 
-case "$1" in
-"unsharp-mask")
-	BATCH_COMMAND="(batch-unsharp-mask \"$files\" 15.0 0.6 0)"
-    ;;
-"resize")
-	BATCH_COMMAND="(batch-resize-image \"$files\" 600 400)"
-    ;;
-"rotate")
-	BATCH_COMMAND="(batch-rotate \"$files\")"
-    ;;
-"auto-levels")
-	BATCH_COMMAND="(batch-auto-levels \"$files\")"
-    ;;
-*)
-	echo 2 > ~/test-exit-status
-	exit
-   ;;
-esac
-
-gimp -i -b \'$BATCH_COMMAND\' -b '(gimp-quit 0)'
+perf mem record -a --type=load --data-page-size --freq=79750 --strict-freq --timestamp --sample-cpu --pid=$PID &
+strace -T -tt -o strace.txt -q -e trace=memory -fp $PID
