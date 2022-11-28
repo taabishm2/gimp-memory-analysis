@@ -3,6 +3,7 @@ import csv
 import matplotlib.pyplot as plt
 from datetime import datetime
 import pandas as pd
+import math
 
 
 def get_fields(syscall):
@@ -64,6 +65,7 @@ def draw_line_chart_mem_use():
     merged_values, top_addr_map = [], dict()
     for row in mmap_reader:
         merged_values.append([datetime.strptime(str(row[1]), '%H:%M:%S.%f'), int(row[5])])
+        print(datetime.strptime(str(row[1]), '%H:%M:%S.%f'))
     for row in munmap_reader:
         merged_values.append([datetime.strptime(str(row[1]), '%H:%M:%S.%f'), -int(row[5])])
     for row in brk_reader:
@@ -83,6 +85,70 @@ def draw_line_chart_mem_use():
     plt.title('mmap lengths - munmap lengths + brk lengths')
 
     plt.show()
+
+def draw_bar_chart_mem_lifespan():
+    mmap_file = open('results/mmap.csv')
+    munmap_file = open('results/munmap.csv')
+
+    mmap_reader = csv.reader(mmap_file)
+    munmap_reader = csv.reader(munmap_file)
+    next(mmap_reader)
+    next(munmap_reader)
+    
+    mmap_dict = dict()
+    for row in mmap_reader:
+        if row[2] == "MAP_FAILED":
+            continue
+        key = (row[2], row[5])
+        if key not in mmap_dict:
+            mmap_dict[key] = []
+        mmap_dict[key].append(datetime.strptime(str(row[1]), '%H:%M:%S.%f'))
+
+    munmap_dict = dict()
+    for row in munmap_reader:
+        if row[2] == "-1":
+            continue 
+        key = (row[4], row[5])
+        if key not in munmap_dict:
+            munmap_dict[key] = []
+        munmap_dict[key].append(datetime.strptime(str(row[1]), '%H:%M:%S.%f'))
+
+    plot_values = []
+    for key in mmap_dict:
+        if key in munmap_dict:
+            mmap_list = mmap_dict[key]
+            mmap_list.sort()
+            munmap_list = munmap_dict[key]
+            munmap_list.sort()
+            maxtime = 0.00
+            mmap_size = len(mmap_list)
+            munmap_size = len(munmap_list)
+            for index in range(mmap_size):
+                if index >= munmap_size:
+                    break
+                delta = munmap_dict[key][index] - mmap_dict[key][index]
+                maxtime = max(delta.total_seconds(), maxtime)
+            if maxtime != 0.0:
+                print(maxtime)
+                plot_values.append([key[0], maxtime])
+    sorted(plot_values)                      
+    plt.figure(figsize=(100,100))                          
+    plt.barh([i+1 for i in range(len(plot_values))], [math.log(x[1]*1000000,10) for x in plot_values])
+    plt.yticks([i+1 for i in range(len(plot_values))], [x[0][4:] for x in plot_values])
+    plt.ylim(1,len(plot_values)+1)
+    plt.title("Lifespan of allocations")
+    plt.ylabel("Virtual Address")
+    plt.xlabel("Lifespace in log(microsecs)")
+    plt.savefig("Lifespane", dpi = 150)        
+
+
+
+
+
+
+
+        
+
 
 
 if __name__ == "__main__":
@@ -135,5 +201,6 @@ if __name__ == "__main__":
         mmap_csv.writerows(syscall_results_map[call_name])
         call_results_file.close()
 
-    draw_line_chart_mem_use()
+    #draw_line_chart_mem_use()
+    draw_bar_chart_mem_lifespan()
     print("Done")
