@@ -65,7 +65,6 @@ def draw_line_chart_mem_use():
     merged_values, top_addr_map = [], dict()
     for row in mmap_reader:
         merged_values.append([datetime.strptime(str(row[1]), '%H:%M:%S.%f'), int(row[5])])
-        print(datetime.strptime(str(row[1]), '%H:%M:%S.%f'))
     for row in munmap_reader:
         merged_values.append([datetime.strptime(str(row[1]), '%H:%M:%S.%f'), -int(row[5])])
     for row in brk_reader:
@@ -84,7 +83,7 @@ def draw_line_chart_mem_use():
     plt.gcf().autofmt_xdate()
     plt.title('mmap lengths - munmap lengths + brk lengths')
 
-    plt.show()
+    plt.savefig('Memory_Use')
 
 def draw_bar_chart_mem_lifespan():
     mmap_file = open('results/mmap.csv')
@@ -129,16 +128,19 @@ def draw_bar_chart_mem_lifespan():
                 delta = munmap_dict[key][index] - mmap_dict[key][index]
                 maxtime = max(delta.total_seconds(), maxtime)
             if maxtime != 0.0:
-                print(maxtime)
                 plot_values.append([key[0], maxtime])
-    sorted(plot_values)                      
+    plot_values.sort()
+    plt.rc('axes', titlesize=80) 
+    plt.rc('axes', labelsize=75)
+    plt.rc('xtick', labelsize=20)
+    plt.rc('ytick', labelsize=40)
     plt.figure(figsize=(100,100))                          
-    plt.barh([i+1 for i in range(len(plot_values))], [math.log(x[1]*1000000,10) for x in plot_values])
-    plt.yticks([i+1 for i in range(len(plot_values))], [x[0][4:] for x in plot_values])
-    plt.ylim(1,len(plot_values)+1)
+    plt.bar([i+1 for i in range(len(plot_values))], [math.log(x[1]*1000000,10) for x in plot_values])
+    plt.xticks([i+1 for i in range(len(plot_values))][::20], [x[0] for x in plot_values][::20], rotation = 45)
+    plt.xlim(1,len(plot_values)+1)
     plt.title("Lifespan of allocations")
-    plt.ylabel("Virtual Address")
-    plt.xlabel("Lifespace in log(microsecs)")
+    plt.xlabel("Virtual Address")
+    plt.ylabel("Lifespace in log(microsecs)")
     plt.savefig("Lifespane", dpi = 150)        
 
 
@@ -201,6 +203,6 @@ if __name__ == "__main__":
         mmap_csv.writerows(syscall_results_map[call_name])
         call_results_file.close()
 
-    #draw_line_chart_mem_use()
+    draw_line_chart_mem_use()
     draw_bar_chart_mem_lifespan()
     print("Done")
