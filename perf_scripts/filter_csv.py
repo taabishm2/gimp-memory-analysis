@@ -26,7 +26,7 @@ def filter_csv(in_file, out_file):
 
 
 def main():
-    parser = argparse.ArgumentParser(prog="clean_spaces")
+    parser = argparse.ArgumentParser()
 
     parser.add_argument(
         "-i",
