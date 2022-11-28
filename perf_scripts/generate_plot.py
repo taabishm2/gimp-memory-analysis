@@ -1,3 +1,4 @@
+import argparse
 import numpy as np
 import pandas as pd
 from math import ceil
@@ -29,6 +30,7 @@ def generate_plot(input_file, output_file):
     sns.heatmap(df, cmap='RdYlGn_r', linewidths=0.50, linecolor='Black', annot=True, ax=axs, cbar=True)
 
     plt.savefig(output_file, dpi=150)
+
 
 def main():
     parser = argparse.ArgumentParser()
