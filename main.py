@@ -119,28 +119,31 @@ def draw_bar_chart_mem_lifespan():
             mmap_list.sort()
             munmap_list = munmap_dict[key]
             munmap_list.sort()
-            maxtime = 0.00
             mmap_size = len(mmap_list)
             munmap_size = len(munmap_list)
             for index in range(mmap_size):
                 if index >= munmap_size:
                     break
                 delta = munmap_dict[key][index] - mmap_dict[key][index]
-                maxtime = max(delta.total_seconds(), maxtime)
-            if maxtime != 0.0:
-                plot_values.append([key[0], maxtime])
+                epoch = datetime(1900, 1, 1)
+                time_passed = mmap_dict[key][index] - epoch
+                time_in_seconds = delta.total_seconds()
+                if time_in_seconds < 0.0:
+                    time_in_seconds = -1 * time_in_seconds
+                plot_values.append([(key[0], time_passed.total_seconds()), time_in_seconds])            
     plot_values.sort()
     plt.rc('axes', titlesize=80) 
     plt.rc('axes', labelsize=75)
-    plt.rc('xtick', labelsize=20)
+    plt.rc('xtick', labelsize=15)
     plt.rc('ytick', labelsize=40)
-    plt.figure(figsize=(100,100))                          
+    fig = plt.figure(figsize=(100,100), tight_layout = True)                          
     plt.bar([i+1 for i in range(len(plot_values))], [math.log(x[1]*1000000,10) for x in plot_values])
-    plt.xticks([i+1 for i in range(len(plot_values))][::20], [x[0] for x in plot_values][::20], rotation = 45)
+    plt.xticks([i+1 for i in range(len(plot_values))][::20], [x[0] for x in plot_values][::20], rotation = 75)
     plt.xlim(1,len(plot_values)+1)
     plt.title("Lifespan of allocations")
     plt.xlabel("Virtual Address")
     plt.ylabel("Lifespan in log(microsecs)")
+    fig.align_labels()
     plt.savefig("Lifespan", dpi = 150)        
 
 
