@@ -7,6 +7,6 @@ perf mem report --demangle-kernel --phys-data \
                 --comms=gimp --field-separator=',' --pretty=raw --stdio > "/tmp/report_raw.csv"
 
 
-python3 clean_spaces.csv -i "/tmp/report_raw.csv" -o "/tmp/report_cleaned.csv"
+python3 clean_spaces.py -i "/tmp/report_raw.csv" -o "/tmp/report_cleaned.csv"
 
 python3 filter_csv.py -i "/tmp/report_cleaned.csv" -o "$1"
