@@ -140,8 +140,8 @@ def draw_bar_chart_mem_lifespan():
     plt.xlim(1,len(plot_values)+1)
     plt.title("Lifespan of allocations")
     plt.xlabel("Virtual Address")
-    plt.ylabel("Lifespace in log(microsecs)")
-    plt.savefig("Lifespane", dpi = 150)        
+    plt.ylabel("Lifespan in log(microsecs)")
+    plt.savefig("Lifespan", dpi = 150)        
 
 
 
