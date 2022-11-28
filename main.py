@@ -52,17 +52,27 @@ def get_fields_for_resumed(syscall):
 def draw_line_chart_mem_use():
     mmap_file = open('results/mmap.csv')
     munmap_file = open('results/munmap.csv')
+    brk_file = open('results/brk.csv')
 
     mmap_reader = csv.reader(mmap_file)
     munmap_reader = csv.reader(munmap_file)
+    brk_reader = csv.reader(brk_file)
     next(mmap_reader)
     next(munmap_reader)
+    next(brk_reader)
 
-    merged_values = []
+    merged_values, top_addr_map = [], dict()
     for row in mmap_reader:
         merged_values.append([datetime.strptime(str(row[1]), '%H:%M:%S.%f'), int(row[5])])
     for row in munmap_reader:
         merged_values.append([datetime.strptime(str(row[1]), '%H:%M:%S.%f'), -int(row[5])])
+    for row in brk_reader:
+        if row[0] not in top_addr_map: top_addr_map[row[0]] = row[2]
+        if row[4] == "NULL": continue
+        top_addr, new_top = top_addr_map[row[0]], row[4]
+        memory_diff = int(new_top, 16) - int(top_addr, 16)
+        merged_values.append([datetime.strptime(str(row[1]), '%H:%M:%S.%f'), memory_diff])
+        top_addr_map[row[0]] = row[2]
 
     merged_values.sort(key=lambda x: x[0])
     for i in range(1, len(merged_values)):
@@ -70,7 +80,7 @@ def draw_line_chart_mem_use():
 
     plt.plot([x[0] for x in merged_values], [x[1] for x in merged_values])
     plt.gcf().autofmt_xdate()
-    plt.title('mmap lengths - munmap lengths')
+    plt.title('mmap lengths - munmap lengths + brk lengths')
 
     plt.show()
 
