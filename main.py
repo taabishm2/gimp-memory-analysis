@@ -50,6 +50,59 @@ def get_fields_for_resumed(syscall):
     return res[0], res[-2], res[-1]
 
 
+def draw_mem_boxplot(trace_name):
+    mmap_file = open('results/mmap.csv')
+    munmap_file = open('results/munmap.csv')
+    brk_file = open('results/brk.csv')
+
+    mmap_reader = csv.reader(mmap_file)
+    munmap_reader = csv.reader(munmap_file)
+    brk_reader = csv.reader(brk_file)
+    next(mmap_reader)
+    next(munmap_reader)
+    next(brk_reader)
+
+    mmaps, munmps, brks, top_addr_map = [], [], [], dict()
+    for row in mmap_reader:
+        mmaps.append(int(row[5]))
+    for row in munmap_reader:
+        munmps.append(int(row[5]))
+    for row in brk_reader:
+        if row[0] not in top_addr_map: top_addr_map[row[0]] = row[2]
+        if row[4] == "NULL": continue
+        top_addr, new_top = top_addr_map[row[0]], row[4]
+        memory_diff = int(new_top, 16) - int(top_addr, 16)
+        brks.append(memory_diff)
+        top_addr_map[row[0]] = row[2]
+
+    data_dict = {'mmap':mmaps, 'munmap':munmps, 'brk':brks}
+
+    plt.clf()
+
+    plt.boxplot(data_dict.values(), vert=True, patch_artist=True, labels=data_dict.keys(), showfliers=False)
+
+    plt.ylabel("Memory (bytes)")
+    plt.title(trace_name)
+    # bplot1 = ax1.boxplot(all_data,
+    #                      vert=True,  # vertical box alignment
+    #                      patch_artist=True,  # fill with color
+    #                      labels=labels)  # will be used to label x-ticks
+    # ax1.set_title('Rectangular box plot')
+    #
+    # merged_values.sort(key=lambda x: x[0])
+    # start_time = merged_values[0][0]
+    # for i in merged_values:
+    #     i[0] = (i[0] - start_time).total_seconds()
+    #
+    # for i in range(1, len(merged_values)):
+    #     merged_values[i][1] += merged_values[i - 1][1]
+    #
+    # plt.plot([x[0] for x in merged_values], [x[1] for x in merged_values], label=trace_name)
+    # plt.title('Memory consumed timeline')
+    # plt.legend(loc='lower right')
+    # plt.xlabel("Time elapsed (sec)")
+    # plt.ylabel("Memory used (bytes)")
+    plt.savefig('graphs/' + trace_name + '-memusebox')
 def draw_line_chart_mem_use(trace_name):
     mmap_file = open('results/mmap.csv')
     munmap_file = open('results/munmap.csv')
@@ -76,14 +129,19 @@ def draw_line_chart_mem_use(trace_name):
         top_addr_map[row[0]] = row[2]
 
     merged_values.sort(key=lambda x: x[0])
+    start_time = merged_values[0][0]
+    for i in merged_values:
+        i[0] = (i[0] - start_time).total_seconds()
+
     for i in range(1, len(merged_values)):
         merged_values[i][1] += merged_values[i - 1][1]
 
-    plt.plot([x[0] for x in merged_values], [x[1] for x in merged_values])
-    plt.gcf().autofmt_xdate()
-    plt.title('mmap lengths - munmap lengths + brk lengths')
-
-    plt.savefig('graphs/' + trace_name + 'memuse')
+    plt.plot([x[0] for x in merged_values], [x[1] for x in merged_values], label=trace_name)
+    plt.title('Memory consumed timeline')
+    plt.legend(loc='lower right')
+    plt.xlabel("Time elapsed (sec)")
+    plt.ylabel("Memory used (bytes)")
+    plt.savefig('graphs/' + trace_name + '-memuse')
 
 def draw_bar_chart_mem_lifespan(trace_name):
     mmap_file = open('results/mmap.csv')
@@ -132,6 +190,7 @@ def draw_bar_chart_mem_lifespan(trace_name):
                     time_in_seconds = -1 * time_in_seconds
                 plot_values.append([(key[0], time_passed.total_seconds()), time_in_seconds])            
     plot_values.sort()
+    plt.clf()
     plt.rc('axes', titlesize=80) 
     plt.rc('axes', labelsize=75)
     plt.rc('xtick', labelsize=15)
@@ -148,56 +207,60 @@ def draw_bar_chart_mem_lifespan(trace_name):
 
 
 if __name__ == "__main__":
-    trace_name = "unsharp"
-    strace_file = open(trace_name + ".txt", "r")
+    trace_names = ["levels", "resize", "rotate", "unsharp"]
+    for trace_name in trace_names:
+        print("### Running " + trace_name + " ###")
+        strace_file = open("strace_logs/" + trace_name + ".txt", "r")
 
-    syscall_to_args_map = {
-        "mmap": ["addr", "length", "prot", "flags", "fd", "offset"],
-        "mmap_anon": ["addr", "length", "prot", "flags", "fd", "offset"],
-        "munmap": ["addr", "length"],
-        "mprotect": ["addr", "length", "prot"],
-        "brk": ["addr"],
-        "shmdt": ["shmaddr"],
-        "shmat": ["shmid", "shmaddr", "shmflg"],
-    }
+        syscall_to_args_map = {
+            "mmap": ["addr", "length", "prot", "flags", "fd", "offset"],
+            "mmap_anon": ["addr", "length", "prot", "flags", "fd", "offset"],
+            "munmap": ["addr", "length"],
+            "mprotect": ["addr", "length", "prot"],
+            "brk": ["addr"],
+            "shmdt": ["shmaddr"],
+            "shmat": ["shmid", "shmaddr", "shmflg"],
+        }
 
-    metadata_headers = ["pid", "timestamp", "ret_val", "duration"]
-    syscall_to_args_map = {key: metadata_headers + syscall_to_args_map[key] for key in syscall_to_args_map}
-    syscall_results_map = {key: [syscall_to_args_map[key]] for key in syscall_to_args_map}
-    syscall_to_stacks_map = dict()
+        metadata_headers = ["pid", "timestamp", "ret_val", "duration"]
+        syscall_to_args_map = {key: metadata_headers + syscall_to_args_map[key] for key in syscall_to_args_map}
+        syscall_results_map = {key: [syscall_to_args_map[key]] for key in syscall_to_args_map}
+        syscall_to_stacks_map = dict()
 
-    for line in strace_file.readlines():
-        for call_to_parse in syscall_to_args_map:
-            if " " + call_to_parse + "(" in line:
-                if "<unfinished ...>" not in line:
-                    arguments = parse_call(line, call_to_parse)    
+        for line in strace_file.readlines():
+            for call_to_parse in syscall_to_args_map:
+                if " " + call_to_parse + "(" in line:
+                    if "<unfinished ...>" not in line:
+                        arguments = parse_call(line, call_to_parse)
+                        syscall_results_map[call_to_parse].append(arguments)
+                        if call_to_parse == "mmap" and ("MAP_ANON" in arguments[7] or "MAP_ANONYMOUS" in arguments[7]):
+                            syscall_results_map["mmap_anon"].append(arguments)
+                    else:
+                        arguments = parse_call_for_unfinished(line, call_to_parse)
+                        if arguments[0] + call_to_parse not in syscall_to_stacks_map:
+                            syscall_to_stacks_map[arguments[0] + call_to_parse] = []
+                        syscall_to_stacks_map[arguments[0] + call_to_parse].append(arguments)
+                    break
+                elif "<... " + call_to_parse + " resumed>" in line:
+                    fields = get_fields_for_resumed(line)
+                    arguments = syscall_to_stacks_map[fields[0] + call_to_parse].pop()
+                    arguments.insert(2, fields[-2])
+                    arguments.insert(3, fields[-1])
                     syscall_results_map[call_to_parse].append(arguments)
                     if call_to_parse == "mmap" and ("MAP_ANON" in arguments[7] or "MAP_ANONYMOUS" in arguments[7]):
-                        syscall_results_map["mmap_anon"].append(arguments)
-                else:
-                    arguments = parse_call_for_unfinished(line, call_to_parse)
-                    if arguments[0] + call_to_parse not in syscall_to_stacks_map:
-                        syscall_to_stacks_map[arguments[0] + call_to_parse] = []
-                    syscall_to_stacks_map[arguments[0] + call_to_parse].append(arguments)
-                break
-            elif "<... " + call_to_parse + " resumed>" in line:
-                fields = get_fields_for_resumed(line)
-                arguments = syscall_to_stacks_map[fields[0] + call_to_parse].pop()
-                arguments.insert(2, fields[-2])
-                arguments.insert(3, fields[-1])
-                syscall_results_map[call_to_parse].append(arguments)
-                if call_to_parse == "mmap" and ("MAP_ANON" in arguments[7] or "MAP_ANONYMOUS" in arguments[7]):
-                        syscall_results_map["mmap_anon"].append(arguments)
-                break
+                            syscall_results_map["mmap_anon"].append(arguments)
+                    break
 
-    # Save results of each call in their own csv
-    for call_name in syscall_to_args_map:
-        print("Saving results/", call_name + ".csv")
-        call_results_file = open("results/" + call_name + ".csv", "w")
-        mmap_csv = csv.writer(call_results_file)
-        mmap_csv.writerows(syscall_results_map[call_name])
-        call_results_file.close()
+        # Save results of each call in their own csv
+        for call_name in syscall_to_args_map:
+            print("Saving results/", call_name + ".csv")
+            call_results_file = open("results/" + call_name + ".csv", "w")
+            mmap_csv = csv.writer(call_results_file)
+            mmap_csv.writerows(syscall_results_map[call_name])
+            call_results_file.close()
 
-    draw_line_chart_mem_use(trace_name)
-    draw_bar_chart_mem_lifespan(trace_name)
-    print("Done")
+        draw_mem_boxplot(trace_name)
+        draw_line_chart_mem_use(trace_name)
+        #draw_bar_chart_mem_lifespan(trace_name)
+
+        print("### Done    " + trace_name + " ###")
