@@ -50,7 +50,7 @@ def get_fields_for_resumed(syscall):
     return res[0], res[-2], res[-1]
 
 
-def draw_line_chart_mem_use():
+def draw_line_chart_mem_use(trace_name):
     mmap_file = open('results/mmap.csv')
     munmap_file = open('results/munmap.csv')
     brk_file = open('results/brk.csv')
@@ -83,9 +83,9 @@ def draw_line_chart_mem_use():
     plt.gcf().autofmt_xdate()
     plt.title('mmap lengths - munmap lengths + brk lengths')
 
-    plt.savefig('Memory_Use')
+    plt.savefig('graphs/' + trace_name + 'memuse')
 
-def draw_bar_chart_mem_lifespan():
+def draw_bar_chart_mem_lifespan(trace_name):
     mmap_file = open('results/mmap.csv')
     munmap_file = open('results/munmap.csv')
 
@@ -144,20 +144,12 @@ def draw_bar_chart_mem_lifespan():
     plt.xlabel("Virtual Address")
     plt.ylabel("Lifespan in log(microsecs)")
     fig.align_labels()
-    plt.savefig("Lifespan", dpi = 150)        
-
-
-
-
-
-
-
-        
-
+    plt.savefig("graphs/" + trace_name + "-lifespan", dpi = 150)
 
 
 if __name__ == "__main__":
-    strace_file = open("strace2.txt", "r")
+    trace_name = "unsharp"
+    strace_file = open(trace_name + ".txt", "r")
 
     syscall_to_args_map = {
         "mmap": ["addr", "length", "prot", "flags", "fd", "offset"],
@@ -206,6 +198,6 @@ if __name__ == "__main__":
         mmap_csv.writerows(syscall_results_map[call_name])
         call_results_file.close()
 
-    draw_line_chart_mem_use()
-    draw_bar_chart_mem_lifespan()
+    draw_line_chart_mem_use(trace_name)
+    draw_bar_chart_mem_lifespan(trace_name)
     print("Done")
