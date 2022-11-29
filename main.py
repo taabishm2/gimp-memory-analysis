@@ -85,7 +85,7 @@ def draw_line_chart_mem_use(trace_name):
 
     plt.savefig('graphs/' + trace_name + 'memuse')
 
-def draw_bar_chart_mem_lifespan(trace_name):
+def draw_bar_chart_mem_lifespan_without_bin():
     mmap_file = open('results/mmap.csv')
     munmap_file = open('results/munmap.csv')
 
@@ -144,7 +144,94 @@ def draw_bar_chart_mem_lifespan(trace_name):
     plt.xlabel("Virtual Address")
     plt.ylabel("Lifespan in log(microsecs)")
     fig.align_labels()
-    plt.savefig("graphs/" + trace_name + "-lifespan", dpi = 150)
+    plt.savefig("Lifespan", dpi = 150)       
+
+def draw_bar_chart_mem_lifespan_with_bin():
+    mmap_file = open('results/mmap.csv')
+    munmap_file = open('results/munmap.csv')
+
+    mmap_reader = csv.reader(mmap_file)
+    munmap_reader = csv.reader(munmap_file)
+    next(mmap_reader)
+    next(munmap_reader)
+    
+    mmap_dict = dict()
+    for row in mmap_reader:
+        if row[2] == "MAP_FAILED":
+            continue
+        key = (row[2], row[5])
+        if key not in mmap_dict:
+            mmap_dict[key] = []
+        mmap_dict[key].append(datetime.strptime(str(row[1]), '%H:%M:%S.%f'))
+
+    munmap_dict = dict()
+    for row in munmap_reader:
+        if row[2] == "-1":
+            continue 
+        key = (row[4], row[5])
+        if key not in munmap_dict:
+            munmap_dict[key] = []
+        munmap_dict[key].append(datetime.strptime(str(row[1]), '%H:%M:%S.%f'))
+
+    plot_values = []
+    for key in mmap_dict:
+        if key in munmap_dict:
+            mmap_list = mmap_dict[key]
+            mmap_list.sort()
+            munmap_list = munmap_dict[key]
+            munmap_list.sort()
+            mmap_size = len(mmap_list)
+            munmap_size = len(munmap_list)
+            maxtime = 0.0
+            for index in range(mmap_size):
+                if index >= munmap_size:
+                    break
+                delta = munmap_dict[key][index] - mmap_dict[key][index]
+                time_in_seconds = delta.total_seconds()
+                if time_in_seconds < 0.0:
+                    time_in_seconds = -1 * time_in_seconds
+                maxtime = max(maxtime, time_in_seconds)    
+            plot_values.append([key[0], maxtime])            
+    plot_values.sort()
+    num_of_bins = 150
+    size_window = int(len(plot_values)/num_of_bins + (len(plot_values) % num_of_bins != 0))
+    bin_plot_values = []
+    maxtime = 0.0
+    start_range = ""
+    end_range = ""
+    for idx in range(len(plot_values)):
+        maxtime = max(maxtime, plot_values[idx][1])
+        if ((idx+1)%size_window) == 1:
+           start_range = plot_values[idx][0]     
+        if ((idx+1)%size_window) == 0:
+            end_range = plot_values[idx][0]
+            bin_plot_values.append([start_range + "-" + end_range, maxtime])
+            maxtime = 0.0
+    if len(plot_values)%num_of_bins != 0:
+        end_range = plot_values[idx][0]
+        bin_plot_values.append([start_range + "-" + end_range, maxtime])    
+    plot_values = bin_plot_values   
+    plt.rc('axes', titlesize=80) 
+    plt.rc('axes', labelsize=75)
+    plt.rc('xtick', labelsize=15)
+    plt.rc('ytick', labelsize=40)
+    fig = plt.figure(figsize=(100,100), tight_layout = True)                          
+    plt.bar([i+1 for i in range(len(plot_values))], [math.log(x[1]*1000000,10) for x in plot_values])
+    plt.xticks([i+1 for i in range(len(plot_values))], [x[0] for x in plot_values], rotation = 75)
+    plt.title("Lifespan of allocations")
+    plt.xlabel("Virtual Address")
+    plt.ylabel("Lifespan in log(microsecs)")
+    fig.align_labels()
+    plt.savefig("Lifespan", dpi = 150)        
+
+
+
+
+
+
+
+        
+
 
 
 if __name__ == "__main__":
