@@ -144,9 +144,9 @@ def draw_bar_chart_mem_lifespan_without_bin():
     plt.xlabel("Virtual Address")
     plt.ylabel("Lifespan in log(microsecs)")
     fig.align_labels()
-    plt.savefig("Lifespan", dpi = 150)       
+    plt.savefig("graphs/" + trace_name + "-lifespan", dpi = 150)       
 
-def draw_bar_chart_mem_lifespan_with_bin():
+def draw_bar_chart_mem_lifespan_with_bin(trace_name):
     mmap_file = open('results/mmap.csv')
     munmap_file = open('results/munmap.csv')
 
@@ -207,7 +207,7 @@ def draw_bar_chart_mem_lifespan_with_bin():
             end_range = plot_values[idx][0]
             bin_plot_values.append([start_range + "-" + end_range, maxtime])
             maxtime = 0.0
-    if len(plot_values)%num_of_bins != 0:
+    if len(plot_values)%size_window != 0:
         end_range = plot_values[idx][0]
         bin_plot_values.append([start_range + "-" + end_range, maxtime])    
     plot_values = bin_plot_values   
@@ -222,7 +222,7 @@ def draw_bar_chart_mem_lifespan_with_bin():
     plt.xlabel("Virtual Address")
     plt.ylabel("Lifespan in log(microsecs)")
     fig.align_labels()
-    plt.savefig("Lifespan", dpi = 150)        
+    plt.savefig("graphs/" + trace_name + "-lifespan", dpi = 150) 
 
 
 
@@ -286,5 +286,5 @@ if __name__ == "__main__":
         call_results_file.close()
 
     draw_line_chart_mem_use(trace_name)
-    draw_bar_chart_mem_lifespan(trace_name)
+    draw_bar_chart_mem_lifespan_with_bin(trace_name)
     print("Done")
