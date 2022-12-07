@@ -4,6 +4,7 @@ import matplotlib.pyplot as plt
 from datetime import datetime
 import pandas as pd
 import math
+import os
 
 
 def get_fields(syscall):
@@ -79,7 +80,7 @@ def draw_mem_boxplot(trace_name):
 
     plt.clf()
 
-    plt.boxplot(data_dict.values(), vert=True, patch_artist=True, labels=data_dict.keys(), showfliers=False)
+    plt.boxplot(data_dict.values(), vert=True, patch_artist=True, labels=data_dict.keys(), showfliers=True)
 
     plt.ylabel("Memory (bytes)")
     plt.title(trace_name)
@@ -143,7 +144,7 @@ def draw_line_chart_mem_use(trace_name):
     plt.ylabel("Memory used (bytes)")
     plt.savefig('graphs/' + trace_name + '-memuse')
 
-def draw_bar_chart_mem_lifespan(trace_name):
+def draw_bar_chart_mem_lifespan_without_bin(trace_name):
     mmap_file = open('results/mmap.csv')
     munmap_file = open('results/munmap.csv')
 
@@ -191,7 +192,7 @@ def draw_bar_chart_mem_lifespan(trace_name):
                 plot_values.append([(key[0], time_passed.total_seconds()), time_in_seconds])            
     plot_values.sort()
     plt.clf()
-    plt.rc('axes', titlesize=80) 
+    plt.rc('axes', titlesize=80)
     plt.rc('axes', labelsize=75)
     plt.rc('xtick', labelsize=15)
     plt.rc('ytick', labelsize=40)
@@ -205,6 +206,128 @@ def draw_bar_chart_mem_lifespan(trace_name):
     fig.align_labels()
     plt.savefig("graphs/" + trace_name + "-lifespan", dpi = 150)
 
+def draw_bar_chart_mem_lifespan_with_bin(trace_name):
+    mmap_file = open('results/mmap.csv')
+    munmap_file = open('results/munmap.csv')
+
+    mmap_reader = csv.reader(mmap_file)
+    munmap_reader = csv.reader(munmap_file)
+    next(mmap_reader)
+    next(munmap_reader)
+
+    mmap_dict = dict()
+    for row in mmap_reader:
+        if row[2] == "MAP_FAILED":
+            continue
+        key = (row[2], row[5])
+        if key not in mmap_dict:
+            mmap_dict[key] = []
+        mmap_dict[key].append(datetime.strptime(str(row[1]), '%H:%M:%S.%f'))
+
+    munmap_dict = dict()
+    for row in munmap_reader:
+        if row[2] == "-1":
+            continue
+        key = (row[4], row[5])
+        if key not in munmap_dict:
+            munmap_dict[key] = []
+        munmap_dict[key].append(datetime.strptime(str(row[1]), '%H:%M:%S.%f'))
+
+    plot_values = []
+    for key in mmap_dict:
+        if key in munmap_dict:
+            mmap_list = mmap_dict[key]
+            mmap_list.sort()
+            munmap_list = munmap_dict[key]
+            munmap_list.sort()
+            mmap_size = len(mmap_list)
+            munmap_size = len(munmap_list)
+            maxtime = 0.0
+            for index in range(mmap_size):
+                if index >= munmap_size:
+                    break
+                delta = munmap_dict[key][index] - mmap_dict[key][index]
+                time_in_seconds = delta.total_seconds()
+                if time_in_seconds < 0.0:
+                    time_in_seconds = -1 * time_in_seconds
+                maxtime = max(maxtime, time_in_seconds)
+            plot_values.append([key[0], maxtime])
+    plot_values.sort()
+    num_of_bins = 500
+    size_window = int(len(plot_values)/num_of_bins + (len(plot_values) % num_of_bins != 0))
+    bin_plot_values = []
+    maxtime = 0.0
+    start_range = ""
+    end_range = ""
+    for idx in range(len(plot_values)):
+        maxtime = max(maxtime, plot_values[idx][1])
+        if ((idx+1)%size_window) == 1:
+           start_range = plot_values[idx][0]
+        if ((idx+1)%size_window) == 0:
+            end_range = plot_values[idx][0]
+            bin_plot_values.append([start_range + "-" + end_range, maxtime])
+            maxtime = 0.0
+    if len(plot_values)%size_window != 0:
+        end_range = plot_values[idx][0]
+        bin_plot_values.append([start_range + "-" + end_range, maxtime])
+    plot_values = bin_plot_values
+    plt.rc('axes', titlesize=80)
+    plt.rc('axes', labelsize=75)
+    plt.rc('xtick', labelsize=15)
+    plt.rc('ytick', labelsize=40)
+    fig = plt.figure(figsize=(100,100), tight_layout = True)
+    plt.bar([i+1 for i in range(len(plot_values))], [math.log(x[1]*1000000,10) for x in plot_values])
+    plt.xticks([i+1 for i in range(len(plot_values))], [x[0] for x in plot_values], rotation = 75)
+    plt.title("Lifespan-",trace_name)
+    plt.xlabel("Virtual Address")
+    plt.ylabel("Lifespan in log(microsecs)")
+    fig.align_labels()
+    plt.savefig("graphs/" + trace_name + "-lifespan", dpi = 150)
+
+
+def draw_mem_memory_histograms(trace_name):
+    mmap_file = open('results/mmap.csv')
+    munmap_file = open('results/munmap.csv')
+    brk_file = open('results/brk.csv')
+
+    mmap_reader = csv.reader(mmap_file)
+    munmap_reader = csv.reader(munmap_file)
+    brk_reader = csv.reader(brk_file)
+    next(mmap_reader)
+    next(munmap_reader)
+    next(brk_reader)
+
+    bins = 100
+    mmap_sizes = [math.log(int(i[5])) for i in mmap_reader]
+    hist = [0] * bins
+    interval_size = math.ceil(max(mmap_sizes) / bins)
+    for i in mmap_sizes:
+        hist[int(i // interval_size)] += i
+
+    plt.bar([i for i in range(bins)], hist)
+
+    plt.ylabel('Memory')
+    plt.xlabel('Log(Memory)')
+    plt.savefig('graphs/' + trace_name + '-memmem-hist')
+
+def draw_mem_count_histograms(trace_name):
+    mmap_file = open('results/mmap.csv')
+    munmap_file = open('results/munmap.csv')
+    brk_file = open('results/brk.csv')
+
+    mmap_reader = csv.reader(mmap_file)
+    munmap_reader = csv.reader(munmap_file)
+    brk_reader = csv.reader(brk_file)
+    next(mmap_reader)
+    next(munmap_reader)
+    next(brk_reader)
+
+    mmap_sizes = [math.log(int(i[5])) for i in mmap_reader]
+    plt.hist(mmap_sizes, bins=100, log=True)
+
+    plt.ylabel('Count')
+    plt.xlabel('Log(Memory)')
+    plt.savefig('graphs/' + trace_name + '-mem-hist')
 
 if __name__ == "__main__":
     trace_names = ["levels", "resize", "rotate", "unsharp"]
@@ -259,8 +382,19 @@ if __name__ == "__main__":
             mmap_csv.writerows(syscall_results_map[call_name])
             call_results_file.close()
 
-        draw_mem_boxplot(trace_name)
-        draw_line_chart_mem_use(trace_name)
-        #draw_bar_chart_mem_lifespan(trace_name)
+        plt.clf()
+        #draw_mem_boxplot(trace_name)
+        print("Generated boxplot")
+        plt.clf()
+        #draw_line_chart_mem_use(trace_name)
+        print("Generated mem-use")
+        plt.clf()
+        #draw_bar_chart_mem_lifespan_with_bin(trace_name)
+        print("Generated lifespan")
+        #draw_mem_count_histograms(trace_name)
+        print("Generated mem-histogram")
+        draw_mem_memory_histograms(trace_name)
+        print("Generated mem-mem-histogram")
 
-        print("### Done    " + trace_name + " ###")
+
+        print("Done")
