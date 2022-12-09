@@ -181,10 +181,10 @@ class Collector:
     def collect_logs(self):
         for gimp_test in GimpTestName:
             print("# COLLECTING FAULTS FOR", gimp_test.name)
-            # self.collect_faults(gimp_test)
+            self.collect_faults(gimp_test)
 
             print("# COLLECTING MEMUSE FOR", gimp_test.name)
-            # self.collect_memory_consumption(gimp_test)
+            self.collect_memory_consumption(gimp_test)
 
             self.collect_strace(gimp_test)
             print("# COLLECTED STRACE")
