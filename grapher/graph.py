@@ -48,9 +48,13 @@ class Graph:
 
     def plot(self):
         for gimp_test in GimpTestName:
-            print("# PLOTTING FAULTS FOR", gimp_test.name)
             if gimp_test != GimpTestName.UNSHARP: continue
+
+            print("# PLOTTING FAULTS FOR", gimp_test.name)
             self.plot_proc_page_faults(gimp_test)
+
+            print("# PLOTTING MEMUSE FOR", gimp_test.name)
+            self.plot_memory_consumed(gimp_test)
 
     def plot_proc_page_faults(self, gimp_test: GimpTestName):
         fault_file = open("input/" + self.allocator.name + "-" + gimp_test.name + "-" + GraphName.PROC_PAGE_FAULTS.name + ".csv")
@@ -69,6 +73,21 @@ class Graph:
         plt.legend()
         plt.savefig("output/" + self.allocator.name + "-" + gimp_test.name + "-" + GraphName.PROC_PAGE_FAULTS.name)
 
+    def plot_memory_consumed(self, gimp_test: GimpTestName):
+        fault_file = open("input/" + self.allocator.name + "-" + gimp_test.name + "-" + GraphName.PROC_MEMORY_CONSUMPTION.name + ".csv")
+        memuse_csv = csv.reader(fault_file)
+        next(memuse_csv)
+
+        memuse, timestamps, min_time = [], [], None
+        for row in memuse_csv:
+            if min_time is None: min_time = row[1]
+            timestamps.append(int(row[1]) - int(min_time))
+            memuse.append(int(row[2]))
+
+        plt.plot(timestamps, memuse)
+        plt.legend()
+        plt.savefig("output/" + self.allocator.name + "-" + gimp_test.name + "-" + GraphName.PROC_MEMORY_CONSUMPTION.name)
+
 
 def save_file(file):
     file.flush()
@@ -85,6 +104,11 @@ def count_page_faults(pid):
     return exec_shell_cmd('cat /proc/' + pid + '/stat').strip().split(" ")[9:13]
 
 
+def count_memory_consumed(pid):
+    pid = pid.replace('\n', '')
+    return os.popen("sudo cat /proc/" + pid + "/smaps | grep -i pss |  awk '{Total+=$2} END {print Total}'").read().strip()
+
+
 class Collector:
 
     def __init__(self, allocator: AllocatorName):
@@ -93,9 +117,36 @@ class Collector:
 
     def collect_all_faults(self):
         for gimp_test in GimpTestName:
-            print("# COLLECTING FAULTS FOR", gimp_test.name)
             if gimp_test != GimpTestName.UNSHARP: continue
+
+            print("# COLLECTING FAULTS FOR", gimp_test.name)
             self.collect_faults(gimp_test)
+
+            print("# COLLECTING MEMUSE FOR", gimp_test.name)
+            self.collect_memory_consumption(gimp_test)
+
+    def collect_memory_consumption(self, gimp_test: GimpTestName):
+        memory_csv_path = "input/" + self.allocator.name + "-" + gimp_test.name + "-" + GraphName.PROC_MEMORY_CONSUMPTION.name + ".csv"
+        memory_csv_file = open(memory_csv_path, "w")
+        memory_csv_writer = csv.writer(memory_csv_file)
+        memory_csv_writer.writerow(['pid', 'time', 'mem'])
+
+        subprocess.Popen(ALLOCATOR_CMD_PREFIX_MAP[allocator] + " " + TEST_CMD_MAP[gimp_test], shell=True)
+
+        while True:
+            print(".", end="", flush=True)
+            gimp_pid = exec_shell_cmd('pidof gimp').replace("\n", "")
+            if not gimp_pid: break
+            try:
+                row = count_memory_consumed(gimp_pid)
+                if row: memory_csv_writer.writerow([gimp_pid, time.time_ns(), row])
+            except:
+                pass
+
+            save_file(memory_csv_file)
+            time.sleep(self.poll_interval)
+
+        memory_csv_file.close()
 
     def collect_faults(self, gimp_test: GimpTestName):
         fault_csv_path = "input/" + self.allocator.name + "-" + gimp_test.name + "-" + GraphName.PROC_PAGE_FAULTS.name + ".csv"
