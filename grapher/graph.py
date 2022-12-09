@@ -82,8 +82,8 @@ class Collector:
 
         start_time = None
         while True:
+            print(".", flush=True)
             gimp_pid = exec_shell_cmd('pidof gimp').replace("\n", "")
-            print("Found gimp:", gimp_pid)
             if not gimp_pid: break
             try:
                 row = count_page_faults(gimp_pid)
@@ -96,6 +96,7 @@ class Collector:
             time.sleep(self.poll_interval)
 
         self.faults_csv_file.close()
+        print("collect_faults done")
 
 
 if __name__ == "__main__":
