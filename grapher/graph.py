@@ -82,10 +82,11 @@ class Collector:
         self.allocator = allocator
         self.poll_interval = 0.3
 
-    def collect_faults(self):
+    def collect_all_faults(self):
         for gimp_test in GimpTestName:
             if gimp_test != GimpTestName.UNSHARP: continue
             self.collect_faults(gimp_test)
+            print("collect_faults done for", gimp_test.name)
 
     def collect_faults(self, gimp_test: GimpTestName):
         fault_csv_path = "input/" + self.allocator.name + "-" + gimp_test.name + "-" + GraphName.PROC_PAGE_FAULTS.name + ".csv"
@@ -109,13 +110,12 @@ class Collector:
             time.sleep(self.poll_interval)
 
         faults_csv_file.close()
-        print("collect_faults done")
 
 
 if __name__ == "__main__":
     allocator = AllocatorName[input("Which allocator: ").strip().upper()]
 
     collector = Collector(allocator)
-    collector.collect_faults()
+    collector.collect_all_faults()
 
     grapher = Graph(allocator)
