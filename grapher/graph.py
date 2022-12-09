@@ -1,4 +1,3 @@
-from collections import defaultdict
 import matplotlib.pyplot as plt
 from enum import Enum
 import subprocess
@@ -49,31 +48,34 @@ ALLOCATOR_CMD_PREFIX_MAP = {
 
 class Graph:
 
-    def __init__(self, allocator: AllocatorName):
-        self.allocator = allocator
-
     def plot(self):
         for gimp_test in GimpTestName:
-            print("# PLOTTING FAULTS FOR", gimp_test.name)
             plt.clf()
-            self.plot_proc_page_faults(gimp_test)
 
-            print("# PLOTTING MEMUSE FOR", gimp_test.name)
+            for allocator in ALLOCATOR_CMD_PREFIX_MAP:
+                print("# PLOTTING FAULTS FOR", gimp_test.name, allocator.name)
+                self.plot_proc_page_faults(gimp_test, allocator)
             plt.clf()
-            self.plot_memory_consumed(gimp_test)
 
-            print("# PLOTTING MEM-CNT FOR", gimp_test.name)
+            for allocator in ALLOCATOR_CMD_PREFIX_MAP:
+                print("# PLOTTING MEMUSE FOR", gimp_test.name, allocator.name)
+                self.plot_memory_consumed(gimp_test, allocator)
             plt.clf()
-            self.plot_memory_memory_count(gimp_test)
 
-            print("# PLOTTING MEM-MEM FOR", gimp_test.name)
+            for allocator in ALLOCATOR_CMD_PREFIX_MAP:
+                print("# PLOTTING MEM-CNT FOR", gimp_test.name, allocator.name)
+                self.plot_memory_memory_count(gimp_test, allocator)
             plt.clf()
-            self.plot_memory_memory_size(gimp_test)
 
-    def plot_memory_memory_size(self, gimp_test: GimpTestName):
-        mmap_file = open("input/" + self.allocator.name + "-" + gimp_test.name + "-mmap-parsed.csv")
-        munmap_file = open("input/" + self.allocator.name + "-" + gimp_test.name + "-munmap-parsed.csv")
-        brk_file = open("input/" + self.allocator.name + "-" + gimp_test.name + "-brk-parsed.csv")
+            for allocator in ALLOCATOR_CMD_PREFIX_MAP:
+                print("# PLOTTING MEM-MEM FOR", gimp_test.name, allocator.name)
+                self.plot_memory_memory_size(gimp_test, allocator)
+            plt.clf()
+
+    def plot_memory_memory_size(self, gimp_test: GimpTestName, allocator: AllocatorName):
+        mmap_file = open("input/" + allocator.name + "-" + gimp_test.name + "-mmap-parsed.csv")
+        munmap_file = open("input/" + allocator.name + "-" + gimp_test.name + "-munmap-parsed.csv")
+        brk_file = open("input/" + allocator.name + "-" + gimp_test.name + "-brk-parsed.csv")
 
         mmap_reader = csv.reader(mmap_file)
         munmap_reader = csv.reader(munmap_file)
@@ -94,12 +96,12 @@ class Graph:
         plt.ylabel('Memory')
         plt.xlabel('Log(Memory)')
         plt.savefig(
-            "output/" + self.allocator.name + "-" + gimp_test.name + "-" + GraphName.STRACE_MEMORY_MEMORY_HIST.name)
+            "output/" + allocator.name + "-" + gimp_test.name + "-" + GraphName.STRACE_MEMORY_MEMORY_HIST.name)
 
-    def plot_memory_memory_count(self, gimp_test: GimpTestName):
-        mmap_file = open("input/" + self.allocator.name + "-" + gimp_test.name + "-mmap-parsed.csv")
-        munmap_file = open("input/" + self.allocator.name + "-" + gimp_test.name + "-munmap-parsed.csv")
-        brk_file = open("input/" + self.allocator.name + "-" + gimp_test.name + "-brk-parsed.csv")
+    def plot_memory_memory_count(self, gimp_test: GimpTestName, allocator: AllocatorName):
+        mmap_file = open("input/" + allocator.name + "-" + gimp_test.name + "-mmap-parsed.csv")
+        munmap_file = open("input/" + allocator.name + "-" + gimp_test.name + "-munmap-parsed.csv")
+        brk_file = open("input/" + allocator.name + "-" + gimp_test.name + "-brk-parsed.csv")
 
         mmap_reader = csv.reader(mmap_file)
         munmap_reader = csv.reader(munmap_file)
@@ -114,11 +116,11 @@ class Graph:
         plt.ylabel('Count')
         plt.xlabel('Log(Memory)')
         plt.savefig(
-            "output/" + self.allocator.name + "-" + gimp_test.name + "-" + GraphName.STRACE_MEMORY_COUNT_HIST.name)
+            "output/" + allocator.name + "-" + gimp_test.name + "-" + GraphName.STRACE_MEMORY_COUNT_HIST.name)
 
-    def plot_proc_page_faults(self, gimp_test: GimpTestName):
+    def plot_proc_page_faults(self, gimp_test: GimpTestName, allocator: AllocatorName):
         fault_file = open(
-            "input/" + self.allocator.name + "-" + gimp_test.name + "-" + GraphName.PROC_PAGE_FAULTS.name + ".csv")
+            "input/" + allocator.name + "-" + gimp_test.name + "-" + GraphName.PROC_PAGE_FAULTS.name + ".csv")
         fault_csv = csv.reader(fault_file)
         next(fault_csv)
 
@@ -129,14 +131,14 @@ class Graph:
             minflt.append(int(row[2]))
             cminflt.append(int(row[3]))
 
-        plt.plot(timestamps, minflt, label="minflt")
-        plt.plot(timestamps, cminflt, label="cminflt")
+        plt.plot(timestamps, minflt, label= allocator.name + "minflt")
+        plt.plot(timestamps, cminflt, label= allocator.name + "cminflt")
         plt.legend()
-        plt.savefig("output/" + self.allocator.name + "-" + gimp_test.name + "-" + GraphName.PROC_PAGE_FAULTS.name)
+        plt.savefig("output/" + allocator.name + "-" + gimp_test.name + "-" + GraphName.PROC_PAGE_FAULTS.name)
 
-    def plot_memory_consumed(self, gimp_test: GimpTestName):
+    def plot_memory_consumed(self, gimp_test: GimpTestName, allocator: AllocatorName):
         fault_file = open(
-            "input/" + self.allocator.name + "-" + gimp_test.name + "-" + GraphName.PROC_MEMORY_CONSUMPTION.name + ".csv")
+            "input/" + allocator.name + "-" + gimp_test.name + "-" + GraphName.PROC_MEMORY_CONSUMPTION.name + ".csv")
         memuse_csv = csv.reader(fault_file)
         next(memuse_csv)
 
@@ -148,7 +150,7 @@ class Graph:
 
         plt.plot(timestamps, memuse)
         plt.savefig(
-            "output/" + self.allocator.name + "-" + gimp_test.name + "-" + GraphName.PROC_MEMORY_CONSUMPTION.name)
+            "output/" + allocator.name + "-" + gimp_test.name + "-" + GraphName.PROC_MEMORY_CONSUMPTION.name)
 
 
 def save_file(file):
@@ -337,12 +339,13 @@ def get_fields_for_resumed(syscall):
 
 if __name__ == "__main__":
     for allocator in ALLOCATOR_CMD_PREFIX_MAP:
-        print("# RUNNING WITH ALLOCATOR: ", allocator.name)
-
-        if not ALLOCATOR_CMD_PREFIX_MAP[allocator]: continue
+        print("# COLLECTING WITH ALLOCATOR: ", allocator.name)
 
         collector = Collector(allocator)
         collector.collect_logs()
 
-        grapher = Graph(allocator)
-        grapher.plot()
+    print("# STARTING PLOT")
+    grapher = Graph()
+    grapher.plot()
+
+    print("# DONE")
