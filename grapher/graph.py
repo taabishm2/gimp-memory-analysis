@@ -89,7 +89,7 @@ class Collector:
                 row = count_page_faults(gimp_pid)
                 if len(row) != 4: continue
                 if start_time is None: start_time = time.time_ns()
-                self.faults_csv_writer.writerow([gimp_pid, start_time - time.time_ns()] + row)
+                self.faults_csv_writer.writerow([gimp_pid, time.time_ns() - start_time] + row)
             except: pass
 
             save_file(self.faults_csv_file)
