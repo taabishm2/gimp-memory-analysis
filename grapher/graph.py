@@ -33,6 +33,13 @@ TEST_CMD_MAP = {
     GimpTestName.UNSHARP: """ gimp -i -b '(batch-unsharp-mask "*.JPG" 15.0 0.6 0)' -b '(gimp-quit 0)' """
 }
 
+ALLOCATOR_CMD_PREFIX_MAP = {
+    AllocatorName.LIB_C: "",
+    AllocatorName.TC_MALLOC: "",
+    AllocatorName.MI_MALLOC: "",
+    AllocatorName.TBB_MALLOC: "",
+    AllocatorName.JE_MALLOC: ""
+}
 
 class Graph:
 
@@ -41,6 +48,7 @@ class Graph:
 
     def plot(self):
         for gimp_test in GimpTestName:
+            print("# PLOTTING FAULTS FOR", gimp_test.name)
             if gimp_test != GimpTestName.UNSHARP: continue
             self.plot_proc_page_faults(gimp_test)
 
@@ -84,9 +92,9 @@ class Collector:
 
     def collect_all_faults(self):
         for gimp_test in GimpTestName:
+            print("# COLLECTING FAULTS FOR", gimp_test.name)
             if gimp_test != GimpTestName.UNSHARP: continue
             self.collect_faults(gimp_test)
-            print("collect_faults done for", gimp_test.name)
 
     def collect_faults(self, gimp_test: GimpTestName):
         fault_csv_path = "input/" + self.allocator.name + "-" + gimp_test.name + "-" + GraphName.PROC_PAGE_FAULTS.name + ".csv"
@@ -113,9 +121,12 @@ class Collector:
 
 
 if __name__ == "__main__":
-    allocator = AllocatorName[input("Which allocator: ").strip().upper()]
+    for allocator in AllocatorName:
+        print("# RUNNING WITH ALLOCATOR: ", allocator.name)
+        if allocator != AllocatorName.LIB_C: continue
 
-    collector = Collector(allocator)
-    collector.collect_all_faults()
+        collector = Collector(allocator)
+        collector.collect_all_faults()
 
-    grapher = Graph(allocator)
+        grapher = Graph(allocator)
+        grapher.plot()
