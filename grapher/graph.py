@@ -103,7 +103,7 @@ class Collector:
         faults_csv_writer = csv.writer(faults_csv_file)
         faults_csv_writer.writerow(['gimp-pid', 'time', 'minflt', 'cminflt', 'majflt', 'cmajflt'])
         
-        subprocess.Popen(TEST_CMD_MAP[gimp_test], shell=True)
+        subprocess.Popen(ALLOCATOR_CMD_PREFIX_MAP[allocator] + " " + TEST_CMD_MAP[gimp_test], shell=True)
 
         while True:
             print(".", end="", flush=True)
