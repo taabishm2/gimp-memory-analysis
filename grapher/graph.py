@@ -82,6 +82,7 @@ class Collector:
         start_time = None
         while True:
             gimp_pid = exec_shell_cmd('pidof gimp').replace("\n", "")
+            print("Found gimp:", gimp_pid)
             if not gimp_pid: break
             try:
                 row = count_page_faults(gimp_pid)
