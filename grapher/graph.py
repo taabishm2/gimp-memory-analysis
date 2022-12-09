@@ -64,8 +64,9 @@ class Graph:
             minflt.append(int(row[2]))
             cminflt.append(int(row[3]))
 
-        plt.plot(timestamps, minflt)
-        plt.plot(timestamps, cminflt)
+        plt.plot(timestamps, minflt, label="minflt")
+        plt.plot(timestamps, cminflt, label="cminflt")
+        plt.legend()
         plt.savefig("output/" + self.allocator.name + "-" + gimp_test.name + "-" + GraphName.PROC_PAGE_FAULTS.name)
 
 
