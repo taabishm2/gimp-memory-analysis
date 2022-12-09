@@ -53,22 +53,22 @@ class Graph:
             plt.clf()
 
             for allocator in ALLOCATOR_CMD_PREFIX_MAP:
-                print("# PLOTTING FAULTS FOR", gimp_test.name, allocator.name)
+                print(" *****   PLOTTING FAULTS FOR", gimp_test.name, allocator.name)
                 self.plot_proc_page_faults(gimp_test, allocator)
             plt.clf()
 
             for allocator in ALLOCATOR_CMD_PREFIX_MAP:
-                print("# PLOTTING MEMUSE FOR", gimp_test.name, allocator.name)
+                print(" *****   PLOTTING MEMUSE FOR", gimp_test.name, allocator.name)
                 self.plot_memory_consumed(gimp_test, allocator)
             plt.clf()
 
             for allocator in ALLOCATOR_CMD_PREFIX_MAP:
-                print("# PLOTTING MEM-CNT FOR", gimp_test.name, allocator.name)
+                print(" *****   PLOTTING MEM-CNT FOR", gimp_test.name, allocator.name)
                 self.plot_memory_memory_count(gimp_test, allocator)
             plt.clf()
 
             for allocator in ALLOCATOR_CMD_PREFIX_MAP:
-                print("# PLOTTING MEM-MEM FOR", gimp_test.name, allocator.name)
+                print(" *****   PLOTTING MEM-MEM FOR", gimp_test.name, allocator.name)
                 self.plot_memory_memory_size(gimp_test, allocator)
             plt.clf()
 
@@ -182,14 +182,14 @@ class Collector:
 
     def collect_logs(self):
         for gimp_test in GimpTestName:
-            print("# COLLECTING FAULTS FOR", gimp_test.name)
+            print(" *****   COLLECTING FAULTS FOR", gimp_test.name, "with", self.allocator.name)
             self.collect_faults(gimp_test)
 
-            print("# COLLECTING MEMUSE FOR", gimp_test.name)
+            print(" *****   COLLECTING MEMUSE FOR", gimp_test.name, "with", self.allocator.name)
             self.collect_memory_consumption(gimp_test)
 
+            print(" *****   COLLECTING STRACE with", self.allocator.name)
             self.collect_strace(gimp_test)
-            print("# COLLECTED STRACE")
 
     def collect_strace(self, gimp_test: GimpTestName):
         strace_path = "input/" + self.allocator.name + "-" + gimp_test.name + "-strace.txt"
@@ -339,13 +339,13 @@ def get_fields_for_resumed(syscall):
 
 if __name__ == "__main__":
     for allocator in ALLOCATOR_CMD_PREFIX_MAP:
-        print("# COLLECTING WITH ALLOCATOR: ", allocator.name)
+        print(" *****   COLLECTING WITH ALLOCATOR: ", allocator.name)
 
         collector = Collector(allocator)
         collector.collect_logs()
 
-    print("# STARTING PLOT")
+    print(" *****   STARTING PLOT")
     grapher = Graph()
     grapher.plot()
 
-    print("# DONE")
+    print(" *****   DONE")
