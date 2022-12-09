@@ -56,7 +56,6 @@ class Graph:
                 print(" *****   PLOTTING FAULTS FOR", gimp_test.name, allocator.name)
                 self.plot_proc_page_faults(gimp_test, allocator)
             plt.clf()
-            break
 
             for allocator in ALLOCATOR_CMD_PREFIX_MAP:
                 print(" *****   PLOTTING MEMUSE FOR", gimp_test.name, allocator.name)
