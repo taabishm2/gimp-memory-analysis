@@ -41,8 +41,8 @@ TEST_CMD_MAP = {
 ALLOCATOR_CMD_PREFIX_MAP = {
     AllocatorName.LIB_C: "",
     AllocatorName.TC_MALLOC: "LD_PRELOAD=/store/gperftools-2.10/out/libtcmalloc.so",
-    AllocatorName.MI_MALLOC: "",
-    AllocatorName.TBB_MALLOC: "",
+    # AllocatorName.MI_MALLOC: "",
+    # AllocatorName.TBB_MALLOC: "",
     AllocatorName.JE_MALLOC: "LD_PRELOAD=/store/jemalloc-5.3.0/build/lib/libjemalloc.so"
 }
 
