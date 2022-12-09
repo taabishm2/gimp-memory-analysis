@@ -41,6 +41,7 @@ ALLOCATOR_CMD_PREFIX_MAP = {
     AllocatorName.JE_MALLOC: ""
 }
 
+
 class Graph:
 
     def __init__(self, allocator: AllocatorName):
@@ -59,7 +60,8 @@ class Graph:
             self.plot_memory_consumed(gimp_test)
 
     def plot_proc_page_faults(self, gimp_test: GimpTestName):
-        fault_file = open("input/" + self.allocator.name + "-" + gimp_test.name + "-" + GraphName.PROC_PAGE_FAULTS.name + ".csv")
+        fault_file = open(
+            "input/" + self.allocator.name + "-" + gimp_test.name + "-" + GraphName.PROC_PAGE_FAULTS.name + ".csv")
         fault_csv = csv.reader(fault_file)
         next(fault_csv)
 
@@ -76,7 +78,8 @@ class Graph:
         plt.savefig("output/" + self.allocator.name + "-" + gimp_test.name + "-" + GraphName.PROC_PAGE_FAULTS.name)
 
     def plot_memory_consumed(self, gimp_test: GimpTestName):
-        fault_file = open("input/" + self.allocator.name + "-" + gimp_test.name + "-" + GraphName.PROC_MEMORY_CONSUMPTION.name + ".csv")
+        fault_file = open(
+            "input/" + self.allocator.name + "-" + gimp_test.name + "-" + GraphName.PROC_MEMORY_CONSUMPTION.name + ".csv")
         memuse_csv = csv.reader(fault_file)
         next(memuse_csv)
 
@@ -87,8 +90,8 @@ class Graph:
             memuse.append(int(row[2]))
 
         plt.plot(timestamps, memuse)
-        plt.legend()
-        plt.savefig("output/" + self.allocator.name + "-" + gimp_test.name + "-" + GraphName.PROC_MEMORY_CONSUMPTION.name)
+        plt.savefig(
+            "output/" + self.allocator.name + "-" + gimp_test.name + "-" + GraphName.PROC_MEMORY_CONSUMPTION.name)
 
 
 def save_file(file):
@@ -108,7 +111,8 @@ def count_page_faults(pid):
 
 def count_memory_consumed(pid):
     pid = pid.replace('\n', '')
-    return os.popen("sudo cat /proc/" + pid + "/smaps | grep -i pss |  awk '{Total+=$2} END {print Total}'").read().strip()
+    return os.popen(
+        "sudo cat /proc/" + pid + "/smaps | grep -i pss |  awk '{Total+=$2} END {print Total}'").read().strip()
 
 
 class Collector:
@@ -126,6 +130,16 @@ class Collector:
 
             print("# COLLECTING MEMUSE FOR", gimp_test.name)
             self.collect_memory_consumption(gimp_test)
+
+            self.collect_strace(gimp_test)
+            print("# COLLECTED STRACE")
+
+    def collect_strace(self, gimp_test: GimpTestName):
+        strace_path = "input/" + self.allocator.name + "-" + gimp_test.name + "-" + "strace.txt"
+        exec_shell_cmd(
+            ALLOCATOR_CMD_PREFIX_MAP[allocator] + " sudo strace -T -tt -o " + strace_path + " -q -e trace=memory -f " +
+            TEST_CMD_MAP[gimp_test], shell=True)
+
 
     def collect_memory_consumption(self, gimp_test: GimpTestName):
         memory_csv_path = "input/" + self.allocator.name + "-" + gimp_test.name + "-" + GraphName.PROC_MEMORY_CONSUMPTION.name + ".csv"
@@ -155,7 +169,7 @@ class Collector:
         faults_csv_file = open(fault_csv_path, "w")
         faults_csv_writer = csv.writer(faults_csv_file)
         faults_csv_writer.writerow(['gimp-pid', 'time', 'minflt', 'cminflt', 'majflt', 'cmajflt'])
-        
+
         subprocess.Popen(ALLOCATOR_CMD_PREFIX_MAP[allocator] + " " + TEST_CMD_MAP[gimp_test], shell=True)
 
         while True:
@@ -166,7 +180,8 @@ class Collector:
                 row = count_page_faults(gimp_pid)
                 if len(row) != 4: continue
                 faults_csv_writer.writerow([gimp_pid, time.time_ns()] + row)
-            except: pass
+            except:
+                pass
 
             save_file(faults_csv_file)
             time.sleep(self.poll_interval)
