@@ -42,7 +42,7 @@ ALLOCATOR_CMD_PREFIX_MAP = {
     AllocatorName.TC_MALLOC: "LD_PRELOAD=/store/gperftools-2.10/out/libtcmalloc.so",
     # AllocatorName.MI_MALLOC: "",
     # AllocatorName.TBB_MALLOC: "",
-    AllocatorName.JE_MALLOC: "LD_PRELOAD=/store/jemalloc-5.3.0/build/lib/libjemalloc.so"
+    AllocatorName.JE_MALLOC: "LD_PRELOAD=/usr/local/lib/libjemalloc.so"
 }
 
 
@@ -56,6 +56,7 @@ class Graph:
                 print(" *****   PLOTTING FAULTS FOR", gimp_test.name, allocator.name)
                 self.plot_proc_page_faults(gimp_test, allocator)
             plt.clf()
+            break
 
             for allocator in ALLOCATOR_CMD_PREFIX_MAP:
                 print(" *****   PLOTTING MEMUSE FOR", gimp_test.name, allocator.name)
@@ -188,7 +189,7 @@ class Collector:
             print(" *****   COLLECTING MEMUSE FOR", gimp_test.name, "with", self.allocator.name)
             self.collect_memory_consumption(gimp_test)
 
-            print(" *****   COLLECTING STRACE with", self.allocator.name)
+            print(" *****   COLLECTING STRACE FOR", gimp_test.name, "with", self.allocator.name)
             self.collect_strace(gimp_test)
 
     def collect_strace(self, gimp_test: GimpTestName):
