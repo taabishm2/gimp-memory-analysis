@@ -35,7 +35,7 @@ TEST_CMD_MAP = {
     GimpTestName.UNSHARP: """ gimp -i -b '(batch-unsharp-mask "*.JPG" 15.0 0.6 0)' -b '(gimp-quit 0)' """,
     GimpTestName.RESIZE: """ gimp -i -b '(batch-resize-image "*.JPG" 600 400)' -b '(gimp-quit 0)' """,
     GimpTestName.ROTATE: """ gimp -i -b '(batch-rotate "*.JPG")' -b '(gimp-quit 0)' """,
-    GimpTestName.UNSHARP: """ gimp -i -b '(batch-auto-levels "*.JPG")' -b '(gimp-quit 0)' """
+    GimpTestName.AUTO_LEVEL: """ gimp -i -b '(batch-auto-levels "*.JPG")' -b '(gimp-quit 0)' """
 }
 
 ALLOCATOR_CMD_PREFIX_MAP = {
