@@ -82,7 +82,7 @@ class Collector:
 
         start_time = None
         while True:
-            print(".", flush=True)
+            print(".", end="", flush=True)
             gimp_pid = exec_shell_cmd('pidof gimp').replace("\n", "")
             if not gimp_pid: break
             try:
