@@ -336,7 +336,7 @@ def get_fields_for_resumed(syscall):
 
 
 if __name__ == "__main__":
-    for allocator in AllocatorName:
+    for allocator in ALLOCATOR_CMD_PREFIX_MAP:
         print("# RUNNING WITH ALLOCATOR: ", allocator.name)
 
         if not ALLOCATOR_CMD_PREFIX_MAP[allocator]: continue
