@@ -51,9 +51,11 @@ class Graph:
             if gimp_test != GimpTestName.UNSHARP: continue
 
             print("# PLOTTING FAULTS FOR", gimp_test.name)
+            plt.clf()
             self.plot_proc_page_faults(gimp_test)
 
             print("# PLOTTING MEMUSE FOR", gimp_test.name)
+            plt.clf()
             self.plot_memory_consumed(gimp_test)
 
     def plot_proc_page_faults(self, gimp_test: GimpTestName):
@@ -115,7 +117,7 @@ class Collector:
         self.allocator = allocator
         self.poll_interval = 0.3
 
-    def collect_all_faults(self):
+    def collect_logs(self):
         for gimp_test in GimpTestName:
             if gimp_test != GimpTestName.UNSHARP: continue
 
@@ -178,7 +180,7 @@ if __name__ == "__main__":
         if allocator != AllocatorName.LIB_C: continue
 
         collector = Collector(allocator)
-        collector.collect_all_faults()
+        collector.collect_logs()
 
         grapher = Graph(allocator)
         grapher.plot()
