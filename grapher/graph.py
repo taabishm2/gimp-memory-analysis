@@ -67,12 +67,13 @@ def count_page_faults(pid):
 
 class Collector:
 
-    def __init__(self, gimp_test: GimpTestName):
+    def __init__(self, gimp_test: GimpTestName, allocator: AllocatorName):
         self.gimp_test = gimp_test
+        self.allocator = allocator
         self.poll_interval = 0.3
 
         # Initialize CSV for page fault data
-        self.fault_csv_path = "input/" + self.gimp_test.name + "-faults.csv"
+        self.fault_csv_path = "input/" + self.allocator + "-" + self.gimp_test.name + "-faults.csv"
         self.faults_csv_file = open(self.fault_csv_path, "w")
         self.faults_csv_writer = csv.writer(self.faults_csv_file)
         self.faults_csv_writer.writerow(['gimp-pid', 'time', 'minflt', 'cminflt', 'majflt', 'cmajflt'])
@@ -100,5 +101,6 @@ class Collector:
 
 
 if __name__ == "__main__":
-    collector = Collector(GimpTestName.UNSHARP)
+    allocator = AllocatorName[input("Which allocator: ").strip()]
+    collector = Collector(GimpTestName.UNSHARP, allocator)
     collector.collect_faults()
