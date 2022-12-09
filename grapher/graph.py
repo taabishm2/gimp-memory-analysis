@@ -1,8 +1,10 @@
+from collections import defaultdict
+import matplotlib.pyplot as plt
 from enum import Enum
 import subprocess
+import time
 import csv
 import os
-import time
 
 
 class GraphName(Enum):
@@ -34,20 +36,29 @@ TEST_CMD_MAP = {
 
 class Graph:
 
-    def __init__(self, allocator: AllocatorName, gimp_test: str, graph_name: GraphName):
+    def __init__(self, allocator: AllocatorName):
         self.allocator = allocator
-        self.gimp_test = gimp_test
-        self.graph_name = graph_name
 
     def plot(self):
-        if self.graph_name == GraphName.PROC_PAGE_FAULTS:
-            pass
-        elif self.graph_name == GraphName.PROC_MEMORY_CONSUMPTION:
-            pass
-        elif self.graph_name == GraphName.STRACE_MEMORY_COUNT_HIST:
-            pass
-        elif self.graph_name == GraphName.STRACE_MEMORY_MEMORY_HIST:
-            pass
+        for gimp_test in GimpTestName:
+            if gimp_test != GimpTestName.UNSHARP: continue
+            self.plot_proc_page_faults(gimp_test)
+
+    def plot_proc_page_faults(self, gimp_test: GimpTestName):
+        fault_file = open("input/" + self.allocator.name + "-" + gimp_test.name + "-" + GraphName.PROC_PAGE_FAULTS + ".csv")
+        fault_csv = csv.reader(fault_file)
+        next(fault_csv)
+
+        minflt, cminflt, timestamps, min_time = [], [], [], None
+        for row in fault_csv:
+            if min_time is None: min_time = row[1]
+            timestamps.append(row[1] - min_time)
+            minflt.append(row[2])
+            cminflt.append(row[3])
+
+        plt.plot(timestamps, minflt)
+        plt.plot(timestamps, cminflt)
+        plt.savefig("output/" + self.allocator.name + "-" + gimp_test.name + "-" + GraphName.PROC_PAGE_FAULTS)
 
 
 def save_file(file):
@@ -67,21 +78,23 @@ def count_page_faults(pid):
 
 class Collector:
 
-    def __init__(self, gimp_test: GimpTestName, allocator: AllocatorName):
-        self.gimp_test = gimp_test
+    def __init__(self, allocator: AllocatorName):
         self.allocator = allocator
         self.poll_interval = 0.3
 
-        # Initialize CSV for page fault data
-        self.fault_csv_path = "input/" + self.allocator.name + "-" + self.gimp_test.name + "-faults.csv"
-        self.faults_csv_file = open(self.fault_csv_path, "w")
-        self.faults_csv_writer = csv.writer(self.faults_csv_file)
-        self.faults_csv_writer.writerow(['gimp-pid', 'time', 'minflt', 'cminflt', 'majflt', 'cmajflt'])
-
     def collect_faults(self):
-        subprocess.Popen(TEST_CMD_MAP[self.gimp_test], shell=True)
+        for gimp_test in GimpTestName:
+            if gimp_test != GimpTestName.UNSHARP: continue
+            self.collect_faults(gimp_test)
 
-        start_time = None
+    def collect_faults(self, gimp_test: GimpTestName):
+        fault_csv_path = "input/" + self.allocator.name + "-" + gimp_test.name + "-" + GraphName.PROC_PAGE_FAULTS.name + ".csv"
+        faults_csv_file = open(fault_csv_path, "w")
+        faults_csv_writer = csv.writer(faults_csv_file)
+        faults_csv_writer.writerow(['gimp-pid', 'time', 'minflt', 'cminflt', 'majflt', 'cmajflt'])
+        
+        subprocess.Popen(TEST_CMD_MAP[gimp_test], shell=True)
+
         while True:
             print(".", end="", flush=True)
             gimp_pid = exec_shell_cmd('pidof gimp').replace("\n", "")
@@ -89,18 +102,20 @@ class Collector:
             try:
                 row = count_page_faults(gimp_pid)
                 if len(row) != 4: continue
-                if start_time is None: start_time = time.time_ns()
-                self.faults_csv_writer.writerow([gimp_pid, time.time_ns() - start_time] + row)
+                faults_csv_writer.writerow([gimp_pid, time.time_ns()] + row)
             except: pass
 
-            save_file(self.faults_csv_file)
+            save_file(faults_csv_file)
             time.sleep(self.poll_interval)
 
-        self.faults_csv_file.close()
+        faults_csv_file.close()
         print("collect_faults done")
 
 
 if __name__ == "__main__":
     allocator = AllocatorName[input("Which allocator: ").strip().upper()]
-    collector = Collector(GimpTestName.UNSHARP, allocator)
+
+    collector = Collector(allocator)
     collector.collect_faults()
+
+    grapher = Graph(allocator)
