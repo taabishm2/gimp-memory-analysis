@@ -391,7 +391,7 @@ if __name__ == "__main__":
         plt.clf()
         #draw_bar_chart_mem_lifespan_with_bin(trace_name)
         print("Generated lifespan")
-        #draw_mem_count_histograms(trace_name)
+        draw_mem_count_histograms(trace_name)
         print("Generated mem-histogram")
         draw_mem_memory_histograms(trace_name)
         print("Generated mem-mem-histogram")
