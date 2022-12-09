@@ -60,9 +60,9 @@ class Graph:
         minflt, cminflt, timestamps, min_time = [], [], [], None
         for row in fault_csv:
             if min_time is None: min_time = row[1]
-            timestamps.append(row[1] - min_time)
-            minflt.append(row[2])
-            cminflt.append(row[3])
+            timestamps.append(int(row[1]) - int(min_time))
+            minflt.append(int(row[2]))
+            cminflt.append(int(row[3]))
 
         plt.plot(timestamps, minflt)
         plt.plot(timestamps, cminflt)
