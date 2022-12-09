@@ -32,7 +32,7 @@ class GimpTestName(Enum):
 
 
 TEST_CMD_MAP = {
-    GimpTestName.UNSHARP: """ gimp -i -b '(batch-unsharp-mask "*9.JPG" 15.0 0.6 0)' -b '(gimp-quit 0)' """
+    GimpTestName.UNSHARP: """ gimp -i -b '(batch-unsharp-mask "*1434.JPG" 15.0 0.6 0)' -b '(gimp-quit 0)' """
 }
 
 ALLOCATOR_CMD_PREFIX_MAP = {
@@ -238,7 +238,7 @@ class Collector:
 
         # Save results of each call in their own csv
         for call_name in syscall_to_args_map:
-            parsed_file_name = "input/" + self.allocator.name + "-" + gimp_test.name + "-" + call_name + "parsed.csv"
+            parsed_file_name = "input/" + self.allocator.name + "-" + gimp_test.name + "-" + call_name + "-parsed.csv"
             call_results_file = open(parsed_file_name, "w")
             mmap_csv = csv.writer(call_results_file)
             mmap_csv.writerows(syscall_results_map[call_name])
