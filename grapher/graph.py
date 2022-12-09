@@ -32,15 +32,18 @@ class GimpTestName(Enum):
 
 
 TEST_CMD_MAP = {
-    GimpTestName.UNSHARP: """ gimp -i -b '(batch-unsharp-mask "*1434.JPG" 15.0 0.6 0)' -b '(gimp-quit 0)' """
+    GimpTestName.UNSHARP: """ gimp -i -b '(batch-unsharp-mask "*.JPG" 15.0 0.6 0)' -b '(gimp-quit 0)' """,
+    GimpTestName.RESIZE: """ gimp -i -b '(batch-resize-image "*.JPG" 600 400)' -b '(gimp-quit 0)' """,
+    GimpTestName.ROTATE: """ gimp -i -b '(batch-rotate "*.JPG")' -b '(gimp-quit 0)' """,
+    GimpTestName.UNSHARP: """ gimp -i -b '(batch-auto-levels "*.JPG")' -b '(gimp-quit 0)' """
 }
 
 ALLOCATOR_CMD_PREFIX_MAP = {
     AllocatorName.LIB_C: "",
-    AllocatorName.TC_MALLOC: "",
+    AllocatorName.TC_MALLOC: "LD_PRELOAD=/store/gperftools-2.10/out/libtcmalloc.so",
     AllocatorName.MI_MALLOC: "",
     AllocatorName.TBB_MALLOC: "",
-    AllocatorName.JE_MALLOC: ""
+    AllocatorName.JE_MALLOC: "LD_PRELOAD=/store/jemalloc-5.3.0/build/lib/libjemalloc.so"
 }
 
 
@@ -51,8 +54,6 @@ class Graph:
 
     def plot(self):
         for gimp_test in GimpTestName:
-            if gimp_test != GimpTestName.UNSHARP: continue
-
             print("# PLOTTING FAULTS FOR", gimp_test.name)
             plt.clf()
             self.plot_proc_page_faults(gimp_test)
@@ -179,8 +180,6 @@ class Collector:
 
     def collect_logs(self):
         for gimp_test in GimpTestName:
-            if gimp_test != GimpTestName.UNSHARP: continue
-
             print("# COLLECTING FAULTS FOR", gimp_test.name)
             # self.collect_faults(gimp_test)
 
@@ -339,7 +338,8 @@ def get_fields_for_resumed(syscall):
 if __name__ == "__main__":
     for allocator in AllocatorName:
         print("# RUNNING WITH ALLOCATOR: ", allocator.name)
-        if allocator != AllocatorName.LIB_C: continue
+
+        if not ALLOCATOR_CMD_PREFIX_MAP[allocator]: continue
 
         collector = Collector(allocator)
         collector.collect_logs()
