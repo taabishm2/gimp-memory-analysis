@@ -32,7 +32,7 @@ class GimpTestName(Enum):
 
 
 TEST_CMD_MAP = {
-    GimpTestName.UNSHARP: """ gimp -i -b '(batch-unsharp-mask "*.JPG" 15.0 0.6 0)' -b '(gimp-quit 0)' """
+    GimpTestName.UNSHARP: """ gimp -i -b '(batch-unsharp-mask "*9.JPG" 15.0 0.6 0)' -b '(gimp-quit 0)' """
 }
 
 ALLOCATOR_CMD_PREFIX_MAP = {
