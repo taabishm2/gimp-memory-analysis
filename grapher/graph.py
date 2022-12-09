@@ -53,7 +53,7 @@ class Graph:
             self.plot_proc_page_faults(gimp_test)
 
     def plot_proc_page_faults(self, gimp_test: GimpTestName):
-        fault_file = open("input/" + self.allocator.name + "-" + gimp_test.name + "-" + GraphName.PROC_PAGE_FAULTS + ".csv")
+        fault_file = open("input/" + self.allocator.name + "-" + gimp_test.name + "-" + GraphName.PROC_PAGE_FAULTS.name + ".csv")
         fault_csv = csv.reader(fault_file)
         next(fault_csv)
 
@@ -66,7 +66,7 @@ class Graph:
 
         plt.plot(timestamps, minflt)
         plt.plot(timestamps, cminflt)
-        plt.savefig("output/" + self.allocator.name + "-" + gimp_test.name + "-" + GraphName.PROC_PAGE_FAULTS)
+        plt.savefig("output/" + self.allocator.name + "-" + gimp_test.name + "-" + GraphName.PROC_PAGE_FAULTS.name)
 
 
 def save_file(file):
