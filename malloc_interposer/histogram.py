@@ -47,6 +47,6 @@ for i in malloc_sizes:
 
 plt.bar([i for i in range(bins)], hist)
 
-plt.ylabel('Memory')
-plt.xlabel('Log(Memory)')
+plt.ylabel('Malloc Request Count')
+plt.xlabel('Log(Memory Size)')
 plt.savefig('graphs/' + 'malloc_' + trace_name + '-memmem-hist')
