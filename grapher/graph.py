@@ -5,25 +5,25 @@ import time
 
 
 class GraphName(Enum):
-    PROC_MEMORY_CONSUMPTION: 1
-    PROC_PAGE_FAULTS: 2
-    STRACE_MEMORY_COUNT_HIST: 3
-    STRACE_MEMORY_MEMORY_HIST: 4
+    PROC_MEMORY_CONSUMPTION = 1
+    PROC_PAGE_FAULTS = 2
+    STRACE_MEMORY_COUNT_HIST = 3
+    STRACE_MEMORY_MEMORY_HIST = 4
 
 
 class AllocatorName(Enum):
-    LIB_C: 1
-    TC_MALLOC: 2
-    MI_MALLOC: 3
-    TBB_MALLOC: 4
-    JE_MALLOC: 5
+    LIB_C = 1
+    TC_MALLOC = 2
+    MI_MALLOC = 3
+    TBB_MALLOC = 4
+    JE_MALLOC = 5
 
 
 class GimpTestName(Enum):
-    UNSHARP: 1
-    RESIZE: 2
-    ROTATE: 3
-    AUTO_LEVEL: 4
+    UNSHARP = 1
+    RESIZE = 2
+    ROTATE = 3
+    AUTO_LEVEL = 4
 
 
 TEST_CMD_MAP = {
@@ -71,7 +71,7 @@ class Collector:
         self.poll_interval = 0.3
 
         # Initialize CSV for page fault data
-        self.fault_csv_path = "input/" + self.gimp_test + "-faults.csv"
+        self.fault_csv_path = "input/" + self.gimp_test.name + "-faults.csv"
         self.faults_csv_file = open(self.fault_csv_path, "w")
         self.faults_csv_writer = csv.writer(self.faults_csv_file)
         self.faults_csv_writer.writerow(['gimp-pid', 'time', 'minflt', 'cminflt', 'majflt', 'cmajflt'])
