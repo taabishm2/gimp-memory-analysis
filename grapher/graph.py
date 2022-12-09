@@ -126,10 +126,10 @@ class Collector:
             if gimp_test != GimpTestName.UNSHARP: continue
 
             print("# COLLECTING FAULTS FOR", gimp_test.name)
-            self.collect_faults(gimp_test)
+            #self.collect_faults(gimp_test)
 
             print("# COLLECTING MEMUSE FOR", gimp_test.name)
-            self.collect_memory_consumption(gimp_test)
+            #self.collect_memory_consumption(gimp_test)
 
             self.collect_strace(gimp_test)
             print("# COLLECTED STRACE")
@@ -138,7 +138,7 @@ class Collector:
         strace_path = "input/" + self.allocator.name + "-" + gimp_test.name + "-" + "strace.txt"
         exec_shell_cmd(
             ALLOCATOR_CMD_PREFIX_MAP[allocator] + " sudo strace -T -tt -o " + strace_path + " -q -e trace=memory -f " +
-            TEST_CMD_MAP[gimp_test], shell=True)
+            TEST_CMD_MAP[gimp_test])
 
 
     def collect_memory_consumption(self, gimp_test: GimpTestName):
