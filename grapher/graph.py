@@ -1,4 +1,5 @@
 from enum import Enum
+import subprocess
 import csv
 import os
 import time
@@ -77,7 +78,7 @@ class Collector:
         self.faults_csv_writer.writerow(['gimp-pid', 'time', 'minflt', 'cminflt', 'majflt', 'cmajflt'])
 
     def collect_faults(self):
-        exec_shell_cmd(TEST_CMD_MAP[self.gimp_test])
+        subprocess.Popen(TEST_CMD_MAP[self.gimp_test])
 
         start_time = None
         while True:
