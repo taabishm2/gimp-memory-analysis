@@ -78,7 +78,7 @@ class Collector:
         self.faults_csv_writer.writerow(['gimp-pid', 'time', 'minflt', 'cminflt', 'majflt', 'cmajflt'])
 
     def collect_faults(self):
-        subprocess.Popen([TEST_CMD_MAP[self.gimp_test]])
+        subprocess.Popen(TEST_CMD_MAP[self.gimp_test], shell=True)
 
         start_time = None
         while True:
