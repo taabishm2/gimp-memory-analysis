@@ -178,7 +178,7 @@ class Collector:
 
     def __init__(self, allocator: AllocatorName):
         self.allocator = allocator
-        self.poll_interval = 0.
+        self.poll_interval = 0.1
 
     def collect_logs(self):
         for gimp_test in GimpTestName:
