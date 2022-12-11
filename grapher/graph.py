@@ -59,8 +59,13 @@ class Graph:
             plt.clf()
 
             for allocator in ALLOCATOR_CMD_PREFIX_MAP:
-                print(" *****   PLOTTING MEMUSE FOR", gimp_test.name, allocator.name)
-                self.plot_memory_consumed(gimp_test, allocator)
+                print(" *****   PLOTTING PSS-MEMUSE FOR", gimp_test.name, allocator.name)
+                self.plot_pss_memory_consumed(gimp_test, allocator)
+            plt.clf()
+
+            for allocator in ALLOCATOR_CMD_PREFIX_MAP:
+                print(" *****   PLOTTING RSS-MEMUSE FOR", gimp_test.name, allocator.name)
+                self.plot_rss_memory_consumed(gimp_test, allocator)
             plt.clf()
 
             for allocator in ALLOCATOR_CMD_PREFIX_MAP:
@@ -136,7 +141,7 @@ class Graph:
         plt.plot(timestamps, cminflt, label=allocator.name + " cminflt")
         plt.legend()
 
-    def plot_memory_consumed(self, gimp_test: GimpTestName, allocator: AllocatorName):
+    def plot_pss_memory_consumed(self, gimp_test: GimpTestName, allocator: AllocatorName):
         fault_file = open(
             "input/" + allocator.name + "-" + gimp_test.name + "-" + GraphName.PROC_PSS_MEMORY_CONSUMPTION.name + ".csv")
         memuse_csv = csv.reader(fault_file)
@@ -151,6 +156,22 @@ class Graph:
         plt.plot(timestamps, memuse)
         plt.savefig(
             "output/" + allocator.name + "-" + gimp_test.name + "-" + GraphName.PROC_PSS_MEMORY_CONSUMPTION.name)
+
+    def plot_rss_memory_consumed(self, gimp_test: GimpTestName, allocator: AllocatorName):
+        fault_file = open(
+            "input/" + allocator.name + "-" + gimp_test.name + "-" + GraphName.PROC_RSS_MEMORY_CONSUMPTION.name + ".csv")
+        memuse_csv = csv.reader(fault_file)
+        next(memuse_csv)
+
+        memuse, timestamps, min_time = [], [], None
+        for row in memuse_csv:
+            if min_time is None: min_time = row[1]
+            timestamps.append(int(row[1]) - int(min_time))
+            memuse.append(int(row[2]))
+
+        plt.plot(timestamps, memuse)
+        plt.savefig(
+            "output/" + allocator.name + "-" + gimp_test.name + "-" + GraphName.PROC_RSS_MEMORY_CONSUMPTION.name)
 
 
 def save_file(file):
