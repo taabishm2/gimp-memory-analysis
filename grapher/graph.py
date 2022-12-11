@@ -167,6 +167,7 @@ def count_page_faults(pid):
     return exec_shell_cmd('cat /proc/' + pid + '/stat').strip().split(" ")[9:13]
 
 
+# TODO: This collects PSS memory not RSS or USS. Is this okay?
 def count_memory_consumed(pid):
     pid = pid.replace('\n', '')
     return os.popen(
