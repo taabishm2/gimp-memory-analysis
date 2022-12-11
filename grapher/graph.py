@@ -250,9 +250,10 @@ class Collector:
         for gimp_test in GimpTestName:
             print(" *****   COLLECTING MEMUSE, FAULTS FOR", gimp_test.name, "with", self.allocator.name)
             self.collect_proc_data(gimp_test)
+            break
 
-            print(" *****   COLLECTING STRACE FOR", gimp_test.name, "with", self.allocator.name)
-            self.collect_strace(gimp_test)
+            # print(" *****   COLLECTING STRACE FOR", gimp_test.name, "with", self.allocator.name)
+            # self.collect_strace(gimp_test)
 
     def collect_strace(self, gimp_test: GimpTestName):
         strace_path = "input/" + self.allocator.name + "-" + gimp_test.name + "-strace.txt"
@@ -408,8 +409,5 @@ if __name__ == "__main__":
     # print(" *****   STARTING PLOT")
     # grapher = Graph()
     # grapher.plot()
-
-    # for allocator in AllocatorName:
-    #     grapher.plot_proc_page_faults_grid(GimpTestName.AUTO_LEVEL, allocator)
 
     print(" *****   DONE")
