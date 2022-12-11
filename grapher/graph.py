@@ -171,7 +171,7 @@ def count_page_faults(pid):
 def count_memory_consumed(pid):
     pid = pid.replace('\n', '')
     return os.popen(
-        "sudo cat /proc/" + pid + "/smaps | grep -i pss |  awk '{Total+=$2} END {print Total}'").read().strip()
+        "sudo cat /proc/" + pid + "/smaps | grep -i pss |  awk '{Total+=$2} END {print Total*1024}'").read().strip()
 
 
 class Collector:
