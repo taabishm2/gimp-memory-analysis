@@ -1,4 +1,5 @@
 import matplotlib.pyplot as plt
+import itertools
 from enum import Enum
 import subprocess
 import time
@@ -7,13 +8,16 @@ import os
 import re
 import math
 
+DPI = 500
+
 
 class GraphName(Enum):
     PROC_PSS_MEMORY_CONSUMPTION = 1
     PROC_RSS_MEMORY_CONSUMPTION = 2
     PROC_PAGE_FAULTS = 3
-    STRACE_MEMORY_COUNT_HIST = 4
-    STRACE_MEMORY_MEMORY_HIST = 5
+    PROC_PAGE_FAULTS_GRID = 4
+    STRACE_MEMORY_COUNT_HIST = 5
+    STRACE_MEMORY_MEMORY_HIST = 6
 
 
 class AllocatorName(Enum):
@@ -39,11 +43,11 @@ TEST_CMD_MAP = {
 }
 
 ALLOCATOR_CMD_PREFIX_MAP = {
-    AllocatorName.LIB_C: "",
-    AllocatorName.TC_MALLOC: "LD_PRELOAD=/store/gperftools-2.10/out/libtcmalloc.so",
-    AllocatorName.MI_MALLOC: "LD_PRELOAD=/usr/local/lib/libmimalloc.so",
-    AllocatorName.TBB_MALLOC: "LD_PRELOAD=/usr/lib/x86_64-linux-gnu/libtbbmalloc_proxy.so",
-    AllocatorName.JE_MALLOC: "LD_PRELOAD=/usr/local/lib/libjemalloc.so"
+    AllocatorName.LIB_C: "sudo",
+    AllocatorName.TC_MALLOC: "sudo LD_PRELOAD=/store/gperftools-2.10/out/libtcmalloc.so",
+    AllocatorName.MI_MALLOC: "sudo LD_PRELOAD=/usr/local/lib/libmimalloc.so",
+    AllocatorName.TBB_MALLOC: "sudo LD_PRELOAD=/usr/lib/x86_64-linux-gnu/libtbbmalloc_proxy.so",
+    AllocatorName.JE_MALLOC: "sudo LD_PRELOAD=/usr/local/lib/libjemalloc.so"
 }
 
 
@@ -56,6 +60,11 @@ class Graph:
             for allocator in ALLOCATOR_CMD_PREFIX_MAP:
                 print(" *****   PLOTTING FAULTS FOR", gimp_test.name, allocator.name)
                 self.plot_proc_page_faults(gimp_test, allocator)
+            plt.clf()
+
+            for allocator in ALLOCATOR_CMD_PREFIX_MAP:
+                print(" *****   PLOTTING FAULTS-GRID FOR", gimp_test.name, allocator.name)
+                self.plot_proc_page_faults_grid(gimp_test, allocator)
             plt.clf()
 
             for allocator in ALLOCATOR_CMD_PREFIX_MAP:
@@ -90,17 +99,19 @@ class Graph:
         next(munmap_reader)
         next(brk_reader)
 
-        bins = 100
-        mmap_sizes = [math.log(int(i[5])) for i in mmap_reader]
+        bins = 150
+        mmap_sizes = [int(i[5]) for i in mmap_reader]
         hist = [0] * bins
         interval_size = math.ceil(max(mmap_sizes) / bins)
         for i in mmap_sizes:
             hist[int(i // interval_size)] += i
 
-        plt.bar([i for i in range(bins)], hist)
+        print(allocator.name, hist)
+        plt.bar([i for i in range(bins)], hist, alpha=0.5, label=allocator.name)
 
         plt.ylabel('Memory')
         plt.xlabel('Log(Memory)')
+        plt.legend()
         plt.savefig(
             "output/" + allocator.name + "-" + gimp_test.name + "-" + GraphName.STRACE_MEMORY_MEMORY_HIST.name)
 
@@ -116,11 +127,19 @@ class Graph:
         next(munmap_reader)
         next(brk_reader)
 
-        mmap_sizes = [math.log(int(i[5])) for i in mmap_reader]
-        plt.hist(mmap_sizes, bins=100, log=True)
+        bins = 150
+        mmap_sizes = [int(i[5]) for i in mmap_reader]
+        hist = [0] * bins
+        interval_size = math.ceil(max(mmap_sizes) / bins)
+        for i in mmap_sizes:
+            hist[int(i // interval_size)] += 1
+
+        print(allocator.name, hist)
+        plt.plot([i for i in range(bins)], hist, alpha=0.5, label=allocator.name)
 
         plt.ylabel('Count')
-        plt.xlabel('Log(Memory)')
+        plt.xlabel('Memory')
+        plt.legend()
         plt.savefig(
             "output/" + allocator.name + "-" + gimp_test.name + "-" + GraphName.STRACE_MEMORY_COUNT_HIST.name)
 
@@ -130,16 +149,36 @@ class Graph:
         fault_csv = csv.reader(fault_file)
         next(fault_csv)
 
-        minflt, cminflt, timestamps, min_time = [], [], [], None
+        # Sums up minflts and cminflts (minor faults of proces and waited-on children)
+        faults, timestamps, min_time = [], [], None
         for row in fault_csv:
             if min_time is None: min_time = row[1]
-            timestamps.append(int(row[1]) - int(min_time))
-            minflt.append(int(row[2]))
-            cminflt.append(int(row[3]))
+            timestamps.append((int(row[1]) - int(min_time)) / pow(10, 9))
+            faults.append((int(row[2]) + int(row[3])) / pow(10, 6))
 
-        plt.plot(timestamps, minflt, label=allocator.name + " minflt")
-        plt.plot(timestamps, cminflt, label=allocator.name + " cminflt")
+        plt.plot(timestamps, faults, label=allocator.name)
         plt.legend()
+        plt.xlabel("Time elapsed (sec)")
+        plt.ylabel("Count of page faults (millions)")
+        plt.savefig(
+            "output/" + allocator.name + "-" + gimp_test.name + "-" + GraphName.PROC_PAGE_FAULTS.name, dpi=DPI)
+
+    def plot_proc_page_faults_grid(self, gimp_test: GimpTestName, allocator: AllocatorName):
+        fault_file = open(
+            "input/" + allocator.name + "-" + gimp_test.name + "-" + GraphName.PROC_PAGE_FAULTS.name + ".csv")
+        fault_csv = csv.reader(fault_file)
+        rows = [r for r in fault_csv]
+        print("rrr", "input/" + allocator.name + "-" + gimp_test.name + "-" + GraphName.PROC_PAGE_FAULTS.name + ".csv")
+        first, last = rows[1], rows[-1]
+
+        x, y = (int(last[1]) - int(first[1])) / pow(10, 9), ((int(last[2]) + int(last[3])) / pow(10, 6))
+        plt.plot(x, y, marker="o", label=allocator.name)
+        plt.legend()
+        plt.grid(True, linestyle="--", alpha=0.5)
+        plt.xlabel("completion time (sec)")
+        plt.ylabel("Count of page faults (millions)")
+        plt.savefig(
+            "output/" + allocator.name + "-" + gimp_test.name + "-" + GraphName.PROC_PAGE_FAULTS_GRID.name, dpi=DPI)
 
     def plot_pss_memory_consumed(self, gimp_test: GimpTestName, allocator: AllocatorName):
         fault_file = open(
@@ -150,10 +189,13 @@ class Graph:
         memuse, timestamps, min_time = [], [], None
         for row in memuse_csv:
             if min_time is None: min_time = row[1]
-            timestamps.append(int(row[1]) - int(min_time))
-            memuse.append(int(row[2]))
+            timestamps.append((int(row[1]) - int(min_time)) / pow(10, 9))
+            memuse.append(int(row[2]) / (1024 * 1024))
 
-        plt.plot(timestamps, memuse)
+        plt.plot(timestamps, memuse, label=allocator.name)
+        plt.legend()
+        plt.xlabel("Time elapsed (sec)")
+        plt.ylabel("Memory consumed - PSS (MB)")
         plt.savefig(
             "output/" + allocator.name + "-" + gimp_test.name + "-" + GraphName.PROC_PSS_MEMORY_CONSUMPTION.name)
 
@@ -166,10 +208,13 @@ class Graph:
         memuse, timestamps, min_time = [], [], None
         for row in memuse_csv:
             if min_time is None: min_time = row[1]
-            timestamps.append(int(row[1]) - int(min_time))
-            memuse.append(int(row[2]))
+            timestamps.append((int(row[1]) - int(min_time)) / pow(10, 9))
+            memuse.append(int(row[2]) / (1024 * 1024))
 
-        plt.plot(timestamps, memuse)
+        plt.plot(timestamps, memuse, label=allocator.name)
+        plt.legend()
+        plt.xlabel("Time elapsed (sec)")
+        plt.ylabel("Memory consumed - RSS (MB)")
         plt.savefig(
             "output/" + allocator.name + "-" + gimp_test.name + "-" + GraphName.PROC_RSS_MEMORY_CONSUMPTION.name)
 
@@ -213,7 +258,7 @@ class Collector:
         strace_path = "input/" + self.allocator.name + "-" + gimp_test.name + "-strace.txt"
         exec_shell_cmd(
             ALLOCATOR_CMD_PREFIX_MAP[
-                self.allocator] + " sudo strace -T -tt -o " + strace_path + " -q -e trace=memory -f " +
+                self.allocator] + " strace -T -tt -o " + strace_path + " -q -e trace=memory -f " +
             TEST_CMD_MAP[gimp_test])
 
         strace_file = open(strace_path, "r")
@@ -363,5 +408,8 @@ if __name__ == "__main__":
     # print(" *****   STARTING PLOT")
     # grapher = Graph()
     # grapher.plot()
-    #
-    # print(" *****   DONE")
+
+    # for allocator in AllocatorName:
+    #     grapher.plot_proc_page_faults_grid(GimpTestName.AUTO_LEVEL, allocator)
+
+    print(" *****   DONE")
