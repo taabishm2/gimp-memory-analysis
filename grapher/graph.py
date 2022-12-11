@@ -40,8 +40,8 @@ TEST_CMD_MAP = {
 ALLOCATOR_CMD_PREFIX_MAP = {
     AllocatorName.LIB_C: "",
     AllocatorName.TC_MALLOC: "LD_PRELOAD=/store/gperftools-2.10/out/libtcmalloc.so",
-    # AllocatorName.MI_MALLOC: "",
-    # AllocatorName.TBB_MALLOC: "",
+    AllocatorName.MI_MALLOC: "LD_PRELOAD=/usr/local/lib/libmimalloc.so",
+    AllocatorName.TBB_MALLOC: "LD_PRELOAD=/usr/lib/x86_64-linux-gnu/libtbbmalloc_proxy.so",
     AllocatorName.JE_MALLOC: "LD_PRELOAD=/usr/local/lib/libjemalloc.so"
 }
 
@@ -338,14 +338,14 @@ def get_fields_for_resumed(syscall):
 
 
 if __name__ == "__main__":
-    # for allocator in ALLOCATOR_CMD_PREFIX_MAP:
-    #     print(" *****   COLLECTING WITH ALLOCATOR: ", allocator.name)
+    for allocator in ALLOCATOR_CMD_PREFIX_MAP:
+        print(" *****   COLLECTING WITH ALLOCATOR: ", allocator.name)
+
+        collector = Collector(allocator)
+        collector.collect_logs()
+
+    # print(" *****   STARTING PLOT")
+    # grapher = Graph()
+    # grapher.plot()
     #
-    #     collector = Collector(allocator)
-    #     collector.collect_logs()
-
-    print(" *****   STARTING PLOT")
-    grapher = Graph()
-    grapher.plot()
-
-    print(" *****   DONE")
+    # print(" *****   DONE")
