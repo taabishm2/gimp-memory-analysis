@@ -131,10 +131,9 @@ class Graph:
             minflt.append(int(row[2]))
             cminflt.append(int(row[3]))
 
-        plt.plot(timestamps, minflt, label= allocator.name + "minflt")
-        plt.plot(timestamps, cminflt, label= allocator.name + "cminflt")
+        plt.plot(timestamps, minflt, label= allocator.name + " minflt")
+        plt.plot(timestamps, cminflt, label= allocator.name + " cminflt")
         plt.legend()
-        plt.savefig("output/" + allocator.name + "-" + gimp_test.name + "-" + GraphName.PROC_PAGE_FAULTS.name)
 
     def plot_memory_consumed(self, gimp_test: GimpTestName, allocator: AllocatorName):
         fault_file = open(
@@ -194,7 +193,7 @@ class Collector:
     def collect_strace(self, gimp_test: GimpTestName):
         strace_path = "input/" + self.allocator.name + "-" + gimp_test.name + "-strace.txt"
         exec_shell_cmd(
-            ALLOCATOR_CMD_PREFIX_MAP[allocator] + " sudo strace -T -tt -o " + strace_path + " -q -e trace=memory -f " +
+            ALLOCATOR_CMD_PREFIX_MAP[self.allocator] + " sudo strace -T -tt -o " + strace_path + " -q -e trace=memory -f " +
             TEST_CMD_MAP[gimp_test])
 
         strace_file = open(strace_path, "r")
@@ -251,7 +250,7 @@ class Collector:
         memory_csv_writer = csv.writer(memory_csv_file)
         memory_csv_writer.writerow(['pid', 'time', 'mem'])
 
-        subprocess.Popen(ALLOCATOR_CMD_PREFIX_MAP[allocator] + " " + TEST_CMD_MAP[gimp_test], shell=True)
+        subprocess.Popen(ALLOCATOR_CMD_PREFIX_MAP[self.allocator] + " " + TEST_CMD_MAP[gimp_test], shell=True)
 
         while True:
             print(".", end="", flush=True)
@@ -274,7 +273,7 @@ class Collector:
         faults_csv_writer = csv.writer(faults_csv_file)
         faults_csv_writer.writerow(['gimp-pid', 'time', 'minflt', 'cminflt', 'majflt', 'cmajflt'])
 
-        subprocess.Popen(ALLOCATOR_CMD_PREFIX_MAP[allocator] + " " + TEST_CMD_MAP[gimp_test], shell=True)
+        subprocess.Popen(ALLOCATOR_CMD_PREFIX_MAP[self.allocator] + " " + TEST_CMD_MAP[gimp_test], shell=True)
 
         while True:
             print(".", end="", flush=True)
@@ -338,11 +337,11 @@ def get_fields_for_resumed(syscall):
 
 
 if __name__ == "__main__":
-    for allocator in ALLOCATOR_CMD_PREFIX_MAP:
-        print(" *****   COLLECTING WITH ALLOCATOR: ", allocator.name)
-
-        collector = Collector(allocator)
-        collector.collect_logs()
+    # for allocator in ALLOCATOR_CMD_PREFIX_MAP:
+    #     print(" *****   COLLECTING WITH ALLOCATOR: ", allocator.name)
+    #
+    #     collector = Collector(allocator)
+    #     collector.collect_logs()
 
     print(" *****   STARTING PLOT")
     grapher = Graph()
