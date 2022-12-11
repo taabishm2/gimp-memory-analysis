@@ -268,7 +268,7 @@ class Collector:
         csv_path = "input/" + self.allocator.name + "-" + gimp_test.name + "-" + graphName.name + ".csv"
         csv_file = open(csv_path, "w")
         csv_writer = csv.writer(csv_file)
-        csv_writer.writerow(list)
+        csv_writer.writerow(headers)
         return csv_file, csv_writer
 
     def collect_proc_data(self, gimp_test: GimpTestName):
