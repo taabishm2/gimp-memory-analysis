@@ -230,6 +230,7 @@ def exec_shell_cmd(cmd):
 
 def count_page_faults(pid):
     pid = pid.replace('\n', '')
+    pid = pid.strip()
     return exec_shell_cmd('cat /proc/' + pid + '/stat').strip().split(" ")[9:13]
 
 
