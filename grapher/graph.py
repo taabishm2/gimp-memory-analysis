@@ -328,7 +328,8 @@ class Collector:
                                                                       ['gimp-pid', 'time', 'minflt', 'cminflt',
                                                                        'majflt', 'cmajflt'])
 
-        subprocess.Popen(ALLOCATOR_CMD_PREFIX_MAP[self.allocator] + " " + TEST_CMD_MAP[gimp_test], shell=True)
+        print(ALLOCATOR_CMD_PREFIX_MAP[self.allocator] + " " + TEST_CMD_MAP[gimp_test])
+        #subprocess.Popen(ALLOCATOR_CMD_PREFIX_MAP[self.allocator] + " " + TEST_CMD_MAP[gimp_test], shell=True)
 
         while True:
             print(".", end="", flush=True)
