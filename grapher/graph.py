@@ -43,11 +43,11 @@ TEST_CMD_MAP = {
 }
 
 ALLOCATOR_CMD_PREFIX_MAP = {
-    AllocatorName.LIB_C: "sudo",
-    AllocatorName.TC_MALLOC: "sudo LD_PRELOAD=/store/gperftools-2.10/out/libtcmalloc.so",
-    AllocatorName.MI_MALLOC: "sudo LD_PRELOAD=/usr/local/lib/libmimalloc.so",
-    AllocatorName.TBB_MALLOC: "sudo LD_PRELOAD=/usr/lib/x86_64-linux-gnu/libtbbmalloc_proxy.so",
-    AllocatorName.JE_MALLOC: "sudo LD_PRELOAD=/usr/local/lib/libjemalloc.so"
+    AllocatorName.LIB_C: "",
+    AllocatorName.TC_MALLOC: "LD_PRELOAD=/store/gperftools-2.10/out/libtcmalloc.so",
+    AllocatorName.MI_MALLOC: "LD_PRELOAD=/usr/local/lib/libmimalloc.so",
+    AllocatorName.TBB_MALLOC: "LD_PRELOAD=/usr/lib/x86_64-linux-gnu/libtbbmalloc_proxy.so",
+    AllocatorName.JE_MALLOC: "LD_PRELOAD=/usr/local/lib/libjemalloc.so"
 }
 
 
@@ -232,7 +232,6 @@ def count_page_faults(pid):
     pid = pid.replace('\n', '')
     pid = pid.strip()
     print('cat /proc/' + pid + '/stat')
-    return
     return exec_shell_cmd('cat /proc/' + pid + '/stat').strip().split(" ")[9:13]
 
 
@@ -240,7 +239,6 @@ def count_memory_consumed(pid, type):
     pid = pid.replace('\n', '')
     pid = pid.strip()
     print("sudo cat /proc/" + pid + "/smaps | grep -i " + type + " |  awk '{Total+=$2} END {print Total*1024}'")
-    return
     return os.popen(
         "sudo cat /proc/" + pid + "/smaps | grep -i " + type + " |  awk '{Total+=$2} END {print Total*1024}'").read().strip()
 
@@ -263,8 +261,8 @@ class Collector:
     def collect_strace(self, gimp_test: GimpTestName):
         strace_path = "input/" + self.allocator.name + "-" + gimp_test.name + "-strace.txt"
         exec_shell_cmd(
-            ALLOCATOR_CMD_PREFIX_MAP[
-                self.allocator] + " strace -T -tt -o " + strace_path + " -q -e trace=memory -f " +
+            "sudo " + ALLOCATOR_CMD_PREFIX_MAP[self.allocator] +
+            " strace -T -tt -o " + strace_path + " -q -e trace=memory -f " +
             TEST_CMD_MAP[gimp_test])
 
         strace_file = open(strace_path, "r")
@@ -336,7 +334,7 @@ class Collector:
         subprocess.Popen(ALLOCATOR_CMD_PREFIX_MAP[self.allocator] + " " + TEST_CMD_MAP[gimp_test], shell=True)
 
         while True:
-            #print(".", end="", flush=True)
+            # print(".", end="", flush=True)
             gimp_pid = exec_shell_cmd('pidof gimp').replace("\n", "")
             if not gimp_pid: break
             try:
