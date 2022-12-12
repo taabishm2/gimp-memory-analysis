@@ -231,12 +231,16 @@ def exec_shell_cmd(cmd):
 def count_page_faults(pid):
     pid = pid.replace('\n', '')
     pid = pid.strip()
+    print('cat /proc/' + pid + '/stat')
+    return
     return exec_shell_cmd('cat /proc/' + pid + '/stat').strip().split(" ")[9:13]
 
 
 def count_memory_consumed(pid, type):
     pid = pid.replace('\n', '')
     pid = pid.strip()
+    print("sudo cat /proc/" + pid + "/smaps | grep -i " + type + " |  awk '{Total+=$2} END {print Total*1024}'")
+    return
     return os.popen(
         "sudo cat /proc/" + pid + "/smaps | grep -i " + type + " |  awk '{Total+=$2} END {print Total*1024}'").read().strip()
 
