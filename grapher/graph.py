@@ -387,7 +387,7 @@ class Collector:
             gimp_pid = exec_shell_cmd('pidof gimp').replace("\n", "")
             if not gimp_pid:
                 time_consumed -= time.time_ns()
-                timing_csv_writer.writerow(time_consumed)
+                timing_csv_writer.writerow([time_consumed])
                 break
             try:
                 pss_row = count_memory_consumed(gimp_pid, "pss")
