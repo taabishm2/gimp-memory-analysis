@@ -1,5 +1,4 @@
 import matplotlib.pyplot as plt
-import itertools
 from enum import Enum
 import subprocess
 import time
@@ -18,6 +17,8 @@ class GraphName(Enum):
     PROC_PAGE_FAULTS_GRID = 4
     STRACE_MEMORY_COUNT_HIST = 5
     STRACE_MEMORY_MEMORY_HIST = 6
+    PROC_FRAGMENTS = 7
+    RUN_TIME = 8
 
 
 class AllocatorName(Enum):
@@ -87,6 +88,48 @@ class Graph:
                 self.plot_memory_memory_size(gimp_test, allocator)
             plt.clf()
 
+            for allocator in ALLOCATOR_CMD_PREFIX_MAP:
+                print(" *****   PLOTTING TIME CONSUMED", gimp_test.name, allocator.name)
+                self.plot_time_consumed(gimp_test, allocator)
+            plt.clf()
+
+            for allocator in ALLOCATOR_CMD_PREFIX_MAP:
+                print(" *****   PLOTTING FRAGMENTS", gimp_test.name, allocator.name)
+                self.plot_fragments(gimp_test, allocator)
+            plt.clf()
+
+    def plot_fragments(self, gimp_test: GimpTestName, allocator: AllocatorName):
+        fragments_file = open(
+            "input/" + allocator.name + "-" + gimp_test.name + "-" + GraphName.PROC_FRAGMENTS.name + ".csv")
+        fragments_csv = csv.reader(fragments_file)
+        next(fragments_csv)
+
+        faults, timestamps, min_time = [], [], None
+        for row in fragments_csv:
+            if min_time is None: min_time = row[1]
+            timestamps.append((int(row[1]) - int(min_time)) / pow(10, 9))
+            faults.append((int(row[2])))
+
+        plt.plot(timestamps, faults, label=allocator.name)
+        plt.legend()
+        plt.xlabel("Time elapsed (sec)")
+        plt.ylabel("Count of fragments")
+        plt.savefig(
+            "output/" + allocator.name + "-" + gimp_test.name + "-" + GraphName.PROC_FRAGMENTS.name, dpi=DPI)
+
+    def plot_time_consumed(self, gimp_test: GimpTestName, allocator: AllocatorName):
+        time_file = open(
+            "input/" + allocator.name + "-" + gimp_test.name + "-" + GraphName.RUN_TIME.name + ".csv")
+        time_csv = csv.reader(time_file)
+        rows = [r for r in time_csv]
+
+        plt.plot([allocator.name], int(rows[1][0]))
+
+        plt.xlabel("Allocator")
+        plt.ylabel("Run time")
+        plt.savefig(
+            "output/" + allocator.name + "-" + gimp_test.name + "-" + GraphName.RUN_TIME.name, dpi=DPI)
+
     def plot_memory_memory_size(self, gimp_test: GimpTestName, allocator: AllocatorName):
         mmap_file = open("input/" + allocator.name + "-" + gimp_test.name + "-mmap-parsed.csv")
         munmap_file = open("input/" + allocator.name + "-" + gimp_test.name + "-munmap-parsed.csv")
@@ -106,7 +149,6 @@ class Graph:
         for i in mmap_sizes:
             hist[int(i // interval_size)] += i
 
-        print(allocator.name, hist)
         plt.bar([i for i in range(bins)], hist, alpha=0.5, label=allocator.name)
 
         plt.ylabel('Memory')
@@ -134,9 +176,9 @@ class Graph:
         for i in mmap_sizes:
             hist[int(i // interval_size)] += 1
 
-        print(allocator.name, hist)
-        plt.plot([i for i in range(bins)], hist, alpha=0.5, label=allocator.name)
+        plt.bar([i for i in range(bins)], hist, alpha=0.5, label=allocator.name)
 
+        plt.xlim(0, 15)
         plt.ylabel('Count')
         plt.xlabel('Memory')
         plt.legend()
@@ -234,6 +276,12 @@ def count_page_faults(pid):
     return exec_shell_cmd('cat /proc/' + pid + '/stat').strip().split(" ")[9:13]
 
 
+def count_fragments(pid):
+    pid = pid.replace('\n', '')
+    pid = pid.strip()
+    return exec_shell_cmd('cat /proc/' + pid + '/maps | wc -l').strip()
+
+
 def count_memory_consumed(pid, type):
     pid = pid.replace('\n', '')
     pid = pid.strip()
@@ -248,8 +296,8 @@ class Collector:
         self.poll_interval = 0.1
 
     def collect_logs(self):
-        for gimp_test in GimpTestName:
-            print(" *****   COLLECTING MEMUSE, FAULTS FOR", gimp_test.name, "with", self.allocator.name)
+        for gimp_test in [GimpTestName.UNSHARP]:
+            print(" *****   COLLECTING MEMUSE, FAULTS, FRAGMENTS FOR", gimp_test.name, "with", self.allocator.name)
             self.collect_proc_data(gimp_test)
 
             print(" *****   COLLECTING STRACE FOR", gimp_test.name, "with", self.allocator.name)
@@ -318,6 +366,7 @@ class Collector:
         return csv_file, csv_writer
 
     def collect_proc_data(self, gimp_test: GimpTestName):
+        time_consumed = time.time_ns()
         pss_memory_csv_file, pss_memory_csv_writer = self.get_csv_with_writer(gimp_test,
                                                                               GraphName.PROC_PSS_MEMORY_CONSUMPTION,
                                                                               ['pid', 'time', 'mem'])
@@ -327,32 +376,38 @@ class Collector:
         faults_csv_file, faults_csv_writer = self.get_csv_with_writer(gimp_test, GraphName.PROC_PAGE_FAULTS,
                                                                       ['gimp-pid', 'time', 'minflt', 'cminflt',
                                                                        'majflt', 'cmajflt'])
+        fragments_csv_file, fragments_csv_writer = self.get_csv_with_writer(gimp_test, GraphName.PROC_FRAGMENTS,
+                                                                            ['gimp-pid', 'time', 'fragments'])
+        timing_csv_file, timing_csv_writer = self.get_csv_with_writer(gimp_test, GraphName.RUN_TIME, ['time'])
 
         subprocess.Popen(ALLOCATOR_CMD_PREFIX_MAP[self.allocator] + " " + TEST_CMD_MAP[gimp_test], shell=True)
 
         while True:
             print(".", end="", flush=True)
             gimp_pid = exec_shell_cmd('pidof gimp').replace("\n", "")
-            if not gimp_pid: break
+            if not gimp_pid:
+                time_consumed -= time.time_ns()
+                timing_csv_writer.writerow(time_consumed)
+                break
             try:
                 pss_row = count_memory_consumed(gimp_pid, "pss")
                 rss_row = count_memory_consumed(gimp_pid, "rss")
                 faults_row = count_page_faults(gimp_pid)
+                fragments_row = count_fragments(gimp_pid)
                 if pss_row: pss_memory_csv_writer.writerow([gimp_pid, time.time_ns(), pss_row])
                 if rss_row: rss_memory_csv_writer.writerow([gimp_pid, time.time_ns(), rss_row])
+                if fragments_row: fragments_csv_writer.writerow([gimp_pid, time.time_ns(), fragments_row])
                 if len(faults_row) == 4: faults_csv_writer.writerow([gimp_pid, time.time_ns()] + faults_row)
             except:
                 pass
 
             time.sleep(self.poll_interval)
 
-        save_file(pss_memory_csv_file)
-        save_file(rss_memory_csv_file)
-        save_file(faults_csv_file)
-
         pss_memory_csv_file.close()
         rss_memory_csv_file.close()
         faults_csv_file.close()
+        fragments_csv_file.close()
+        timing_csv_file.close()
 
 
 def parse_call(syscall, fn_name):
