@@ -236,6 +236,10 @@ def count_page_faults(pid):
 
 def count_memory_consumed(pid, type):
     pid = pid.replace('\n', '')
+    pid = pid.strip()
+    print("Here")
+    print("sudo cat /proc/" + pid + "/smaps | grep -i " + type + " |  awk '{Total+=$2} END {print Total*1024}'")
+    time.sleep(10)
     return os.popen(
         "sudo cat /proc/" + pid + "/smaps | grep -i " + type + " |  awk '{Total+=$2} END {print Total*1024}'").read().strip()
 
@@ -328,8 +332,7 @@ class Collector:
                                                                       ['gimp-pid', 'time', 'minflt', 'cminflt',
                                                                        'majflt', 'cmajflt'])
 
-        print(ALLOCATOR_CMD_PREFIX_MAP[self.allocator] + " " + TEST_CMD_MAP[gimp_test])
-        #subprocess.Popen(ALLOCATOR_CMD_PREFIX_MAP[self.allocator] + " " + TEST_CMD_MAP[gimp_test], shell=True)
+        subprocess.Popen(ALLOCATOR_CMD_PREFIX_MAP[self.allocator] + " " + TEST_CMD_MAP[gimp_test], shell=True)
 
         while True:
             print(".", end="", flush=True)
