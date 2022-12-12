@@ -168,7 +168,6 @@ class Graph:
             "input/" + allocator.name + "-" + gimp_test.name + "-" + GraphName.PROC_PAGE_FAULTS.name + ".csv")
         fault_csv = csv.reader(fault_file)
         rows = [r for r in fault_csv]
-        print("rrr", "input/" + allocator.name + "-" + gimp_test.name + "-" + GraphName.PROC_PAGE_FAULTS.name + ".csv")
         first, last = rows[1], rows[-1]
 
         x, y = (int(last[1]) - int(first[1])) / pow(10, 9), ((int(last[2]) + int(last[3])) / pow(10, 6))
@@ -237,9 +236,6 @@ def count_page_faults(pid):
 def count_memory_consumed(pid, type):
     pid = pid.replace('\n', '')
     pid = pid.strip()
-    print("Here")
-    print("sudo cat /proc/" + pid + "/smaps | grep -i " + type + " |  awk '{Total+=$2} END {print Total*1024}'")
-    time.sleep(10)
     return os.popen(
         "sudo cat /proc/" + pid + "/smaps | grep -i " + type + " |  awk '{Total+=$2} END {print Total*1024}'").read().strip()
 
@@ -335,7 +331,7 @@ class Collector:
         subprocess.Popen(ALLOCATOR_CMD_PREFIX_MAP[self.allocator] + " " + TEST_CMD_MAP[gimp_test], shell=True)
 
         while True:
-            print(".", end="", flush=True)
+            #print(".", end="", flush=True)
             gimp_pid = exec_shell_cmd('pidof gimp').replace("\n", "")
             if not gimp_pid: break
             try:
