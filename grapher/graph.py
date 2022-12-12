@@ -231,14 +231,12 @@ def exec_shell_cmd(cmd):
 def count_page_faults(pid):
     pid = pid.replace('\n', '')
     pid = pid.strip()
-    print('cat /proc/' + pid + '/stat')
     return exec_shell_cmd('cat /proc/' + pid + '/stat').strip().split(" ")[9:13]
 
 
 def count_memory_consumed(pid, type):
     pid = pid.replace('\n', '')
     pid = pid.strip()
-    print("sudo cat /proc/" + pid + "/smaps | grep -i " + type + " |  awk '{Total+=$2} END {print Total*1024}'")
     return os.popen(
         "sudo cat /proc/" + pid + "/smaps | grep -i " + type + " |  awk '{Total+=$2} END {print Total*1024}'").read().strip()
 
@@ -253,10 +251,9 @@ class Collector:
         for gimp_test in GimpTestName:
             print(" *****   COLLECTING MEMUSE, FAULTS FOR", gimp_test.name, "with", self.allocator.name)
             self.collect_proc_data(gimp_test)
-            break
 
-            # print(" *****   COLLECTING STRACE FOR", gimp_test.name, "with", self.allocator.name)
-            # self.collect_strace(gimp_test)
+            print(" *****   COLLECTING STRACE FOR", gimp_test.name, "with", self.allocator.name)
+            self.collect_strace(gimp_test)
 
     def collect_strace(self, gimp_test: GimpTestName):
         strace_path = "input/" + self.allocator.name + "-" + gimp_test.name + "-strace.txt"
@@ -334,7 +331,7 @@ class Collector:
         subprocess.Popen(ALLOCATOR_CMD_PREFIX_MAP[self.allocator] + " " + TEST_CMD_MAP[gimp_test], shell=True)
 
         while True:
-            # print(".", end="", flush=True)
+            print(".", end="", flush=True)
             gimp_pid = exec_shell_cmd('pidof gimp').replace("\n", "")
             if not gimp_pid: break
             try:
