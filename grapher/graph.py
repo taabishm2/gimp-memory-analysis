@@ -6,6 +6,7 @@ import csv
 import os
 import re
 import math
+from collections import Counter
 
 DPI = 500
 
@@ -55,7 +56,7 @@ ALLOCATOR_CMD_PREFIX_MAP = {
 class Graph:
 
     def plot(self):
-        for gimp_test in GimpTestName:
+        for gimp_test in [GimpTestName.UNSHARP]:
             plt.clf()
 
             for allocator in ALLOCATOR_CMD_PREFIX_MAP:
@@ -98,6 +99,33 @@ class Graph:
                 self.plot_fragments(gimp_test, allocator)
             plt.clf()
 
+            for allocator in ALLOCATOR_CMD_PREFIX_MAP:
+                print(" *****   PLOTTING KERNEL CROSSING FOR", gimp_test.name, allocator.name)
+                self.plot_mem_kernel_cross(gimp_test, allocator)
+            plt.clf()
+
+
+    def plot_mem_kernel_cross(self, gimp_test: GimpTestName, allocator: AllocatorName):
+        mmap_file = open("input/" + allocator.name + "-" + gimp_test.name + "-mmap-parsed.csv")
+        munmap_file = open("input/" + allocator.name + "-" + gimp_test.name + "-munmap-parsed.csv")
+        brk_file = open("input/" + allocator.name + "-" + gimp_test.name + "-brk-parsed.csv")
+
+        mmap_reader = csv.reader(mmap_file)
+        munmap_reader = csv.reader(munmap_file)
+        brk_reader = csv.reader(brk_file)
+        next(mmap_reader)
+        next(munmap_reader)
+        next(brk_reader)
+
+        mmap_count = len([row for row in mmap_reader])
+        munmap_count = len([row for row in munmap_reader])
+        brk_count = len([row for row in brk_reader])
+
+        print("MMAP", allocator.name, mmap_count)
+        print("MUNMAP", allocator.name, munmap_count)
+        print("BRK", allocator.name, brk_count)
+
+
     def plot_fragments(self, gimp_test: GimpTestName, allocator: AllocatorName):
         fragments_file = open(
             "input/" + allocator.name + "-" + gimp_test.name + "-" + GraphName.PROC_FRAGMENTS.name + ".csv")
@@ -111,6 +139,8 @@ class Graph:
             faults.append((int(row[2])))
 
         plt.plot(timestamps, faults, label=allocator.name)
+        plt.ylim(500, 1750)
+        plt.title("Count of fragments vs time elapsed")
         plt.legend()
         plt.xlabel("Time elapsed (sec)")
         plt.ylabel("Count of fragments")
@@ -123,10 +153,11 @@ class Graph:
         time_csv = csv.reader(time_file)
         rows = [r for r in time_csv]
 
-        plt.plot([allocator.name], int(rows[1][0]))
+        plt.bar([allocator.name], -int(rows[1][0]) / pow(10, 9), width=0.5)
 
+        plt.title("Total execution time")
         plt.xlabel("Allocator")
-        plt.ylabel("Run time")
+        plt.ylabel("Run time (sec)")
         plt.savefig(
             "output/" + allocator.name + "-" + gimp_test.name + "-" + GraphName.RUN_TIME.name, dpi=DPI)
 
@@ -142,20 +173,25 @@ class Graph:
         next(munmap_reader)
         next(brk_reader)
 
-        bins = 150
+        bin_size = 10000000
         mmap_sizes = [int(i[5]) for i in mmap_reader]
-        hist = [0] * bins
-        interval_size = math.ceil(max(mmap_sizes) / bins)
-        for i in mmap_sizes:
-            hist[int(i // interval_size)] += i
+        bins = max(mmap_sizes) // bin_size + 1
+        x_vals, y_vals = [], [0] * bins
+        for i in range(bins):
+            x_vals.append((i * bin_size) + (bin_size // 2))
+        for val in mmap_sizes:
+            y_vals[int(val) % bins] += val
 
-        plt.bar([i for i in range(bins)], hist, alpha=0.5, label=allocator.name)
+        plt.bar([i for i in range(bins)], y_vals, alpha=0.5, label=allocator.name)
+        #print(interval_size,[(interval_size * i) + (interval_size // 2) for i in range(bins)])
+        #plt.bar([(interval_size * i) + (interval_size // 2) for i in range(bins)], hist, alpha=0.5, label=allocator.name, width=0.5)
 
-        plt.ylabel('Memory')
-        plt.xlabel('Log(Memory)')
+        plt.title("Total allocated memory by mmap request sizes")
+        plt.ylabel('Total allocated memory')
+        plt.xlabel('Size of memory request (bytes)')
         plt.legend()
         plt.savefig(
-            "output/" + allocator.name + "-" + gimp_test.name + "-" + GraphName.STRACE_MEMORY_MEMORY_HIST.name)
+            "output/" + allocator.name + "-" + gimp_test.name + "-" + GraphName.STRACE_MEMORY_MEMORY_HIST.name, dpi=DPI)
 
     def plot_memory_memory_count(self, gimp_test: GimpTestName, allocator: AllocatorName):
         mmap_file = open("input/" + allocator.name + "-" + gimp_test.name + "-mmap-parsed.csv")
@@ -169,21 +205,31 @@ class Graph:
         next(munmap_reader)
         next(brk_reader)
 
-        bins = 150
-        mmap_sizes = [int(i[5]) for i in mmap_reader]
-        hist = [0] * bins
-        interval_size = math.ceil(max(mmap_sizes) / bins)
-        for i in mmap_sizes:
-            hist[int(i // interval_size)] += 1
 
-        plt.bar([i for i in range(bins)], hist, alpha=0.5, label=allocator.name)
+        # bins = 100
+        # mmap_sizes = [int(i[5]) for i in mmap_reader]
+        # hist = [0] * bins
+        # interval_size = math.ceil(max(mmap_sizes) / bins)
+        # for i in mmap_sizes:
+        #     hist[int(i // interval_size)] += 1
+        #
+        # plt.bar([(interval_size * i) + (interval_size // 2) for i in range(bins)], hist, alpha=0.7, label=allocator.name)
 
-        plt.xlim(0, 15)
-        plt.ylabel('Count')
-        plt.xlabel('Memory')
-        plt.legend()
+        #plt.hist([int(i[5]) for i in mmap_reader], log=True, bins=300)
+
+        mmap_sizes = [math.log(int(i[5])) for i in mmap_reader]
+        counter = Counter(mmap_sizes)
+        for c in counter:
+            plt.stem(c, math.log(counter[c]))
+
+        plt.xlim(2, 20)
+        # plt.ylim(0, pow(10, 5))
+        plt.title("Count of mmap requests vs memory requested")
+        plt.ylabel('Count of calls')
+        plt.xlabel('Size of memory request (bytes)')
         plt.savefig(
-            "output/" + allocator.name + "-" + gimp_test.name + "-" + GraphName.STRACE_MEMORY_COUNT_HIST.name)
+            "output/" + allocator.name + "-" + gimp_test.name + "-" + GraphName.STRACE_MEMORY_COUNT_HIST.name, dpi=DPI)
+        plt.clf()
 
     def plot_proc_page_faults(self, gimp_test: GimpTestName, allocator: AllocatorName):
         fault_file = open(
@@ -200,6 +246,7 @@ class Graph:
 
         plt.plot(timestamps, faults, label=allocator.name)
         plt.legend()
+        plt.title("Page faults vs time elapsed")
         plt.xlabel("Time elapsed (sec)")
         plt.ylabel("Count of page faults (millions)")
         plt.savefig(
@@ -215,6 +262,7 @@ class Graph:
         x, y = (int(last[1]) - int(first[1])) / pow(10, 9), ((int(last[2]) + int(last[3])) / pow(10, 6))
         plt.plot(x, y, marker="o", label=allocator.name)
         plt.legend()
+        plt.title("Completion time vs page faults")
         plt.grid(True, linestyle="--", alpha=0.5)
         plt.xlabel("completion time (sec)")
         plt.ylabel("Count of page faults (millions)")
@@ -235,10 +283,11 @@ class Graph:
 
         plt.plot(timestamps, memuse, label=allocator.name)
         plt.legend()
+        plt.title("Memory consumed with time (PSS)")
         plt.xlabel("Time elapsed (sec)")
         plt.ylabel("Memory consumed - PSS (MB)")
         plt.savefig(
-            "output/" + allocator.name + "-" + gimp_test.name + "-" + GraphName.PROC_PSS_MEMORY_CONSUMPTION.name)
+            "output/" + allocator.name + "-" + gimp_test.name + "-" + GraphName.PROC_PSS_MEMORY_CONSUMPTION.name, dpi=DPI)
 
     def plot_rss_memory_consumed(self, gimp_test: GimpTestName, allocator: AllocatorName):
         fault_file = open(
@@ -254,10 +303,11 @@ class Graph:
 
         plt.plot(timestamps, memuse, label=allocator.name)
         plt.legend()
+        plt.title("Memory consumed with time (RSS)")
         plt.xlabel("Time elapsed (sec)")
         plt.ylabel("Memory consumed - RSS (MB)")
         plt.savefig(
-            "output/" + allocator.name + "-" + gimp_test.name + "-" + GraphName.PROC_RSS_MEMORY_CONSUMPTION.name)
+            "output/" + allocator.name + "-" + gimp_test.name + "-" + GraphName.PROC_RSS_MEMORY_CONSUMPTION.name, dpi=DPI)
 
 
 def save_file(file):
@@ -300,8 +350,8 @@ class Collector:
             print(" *****   COLLECTING MEMUSE, FAULTS, FRAGMENTS FOR", gimp_test.name, "with", self.allocator.name)
             self.collect_proc_data(gimp_test)
 
-            print(" *****   COLLECTING STRACE FOR", gimp_test.name, "with", self.allocator.name)
-            self.collect_strace(gimp_test)
+            # print(" *****   COLLECTING STRACE FOR", gimp_test.name, "with", self.allocator.name)
+            # self.collect_strace(gimp_test)
 
     def collect_strace(self, gimp_test: GimpTestName):
         strace_path = "input/" + self.allocator.name + "-" + gimp_test.name + "-strace.txt"
