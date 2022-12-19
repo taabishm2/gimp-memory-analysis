@@ -13,7 +13,7 @@
              (plug-in-unsharp-mask RUN-NONINTERACTIVE
                                    image drawable radius amount threshold)
              (gimp-file-save RUN-NONINTERACTIVE
-                             image drawable filename filename)
+                             image drawable "output.jpg" "")
              (gimp-image-delete image))
            (set! filelist (cdr filelist)))))
 
@@ -31,7 +31,7 @@
 
              (gimp-image-scale image new-width new-height)
              (gimp-file-save RUN-NONINTERACTIVE
-                             image drawable filename filename)
+                             image drawable "output.jpg" "")
              (gimp-image-delete image))
            (set! filelist (cdr filelist)))))
 
@@ -45,7 +45,7 @@
                 (drawable (car (gimp-image-get-active-layer image))))
            (gimp-levels-stretch drawable)
            (gimp-file-save RUN-NONINTERACTIVE
-                           image drawable filename filename)
+                           image drawable "output.jpg" "")
            (gimp-image-delete image))
          (set! filelist (cdr filelist)))))
 
@@ -61,7 +61,7 @@
              (gimp-image-rotate image 0)
 
              (gimp-file-save RUN-NONINTERACTIVE
-                             image drawable filename filename)
+                             image drawable "output.jpg" "")
              (gimp-image-delete image))
            (set! filelist (cdr filelist)))))
 
