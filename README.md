@@ -1,17 +1,5 @@
-# Linux-Memory-Managment Profiling Tools
-Includes various scripts that rely on strace, proc files, Valgrind, and perf to profile memory access patterns of an application
+# Overview
+With GIMP, we measure various performance parameters affected by memory management policies and compare different application-level memory allocators on these parameters. Finally, we suggest potential customizations that a custom application-level memory allocator could make. Our results demonstrate that the right allocator can improve GIMP execution times by up to 8% and reduce page faults by up to 20%.
 
-## Strace
-* For each call to be parsed, add the call-name to args mapping in `syscall_to_args_map`
-* Parser works for call with a format similar to `sudo strace -T -tt -o strace.txt -q -e trace=memory -fp 25787`
-* Generates CSV per call in the `results` directory
-
-## GIMP Test Usage
-
-* Run `./bench.sh <test-name>` where test-name is one of the options below - 
-1. unsharp-mask
-2. resize
-3. rotate
-4. auto-levels
-
-* Credits to Phoronix Test Suite 
+# Full Report
+[PDF Link](https://drive.google.com/file/d/1BSlS1cS8iky4dHE8TvDbVtBOIo3jNE8D/view?usp=share_link)
